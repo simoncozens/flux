@@ -29,8 +29,8 @@ class Vharfbuzz:
     def make_message_handling_function(self, buf, onchange):
         self.history = {"GSUB": [], "GPOS": []}
         self.lastLookupID = None
-
         def handle_message(msg, buf2):
+            print(msg)
             m = re.match("start lookup (\\d+)", msg)
             if m:
                 lookupid = int(m[1])
@@ -39,11 +39,12 @@ class Vharfbuzz:
             m = re.match("end lookup (\\d+)", msg)
             if m:
                 lookupid = int(m[1])
-                if self.serialize_buf(buf2) != self.history[self.stage][-1]:
-                    onchange(self, self.stage, lookupid, self._copy_buf(buf2))
+                # if self.serialize_buf(buf2) != self.history[self.stage][-1]:
+                onchange(self, self.stage, lookupid, self._copy_buf(buf2))
                 self.history[self.stage].pop()
             if msg.startswith("start GPOS stage"):
                 self.stage = "GPOS"
+            return True
 
         return handle_message
 

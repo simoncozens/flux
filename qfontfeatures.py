@@ -8,6 +8,7 @@ class QFontFeaturesPanel(QSplitter):
         self.fea = fea
         super(QFontFeaturesPanel, self).__init__()
         self.setOrientation(Qt.Vertical)
+        self.lookups = {}
         self.addWidget(self.make_class_list())
         self.addWidget(self.make_free_routine_list())
         self.addWidget(self.make_feature_list())
@@ -27,6 +28,8 @@ class QFontFeaturesPanel(QSplitter):
             name = routine.name or "Anonymous routine"
             routine_item = QTreeWidgetItem([name])
             for rule in routine.rules:
+                if rule.address:
+                    self.lookups[rule.address] = routine_item
                 rule_item = QTreeWidgetItem([rule.asFea()])
                 routine_item.addChild(rule_item)
             routine_list.addTopLevelItem(routine_item)
@@ -41,6 +44,8 @@ class QFontFeaturesPanel(QSplitter):
                 name = routine.name or "<Routine>"
                 routine_item = QTreeWidgetItem([name])
                 for rule in routine.rules:
+                    if rule.address:
+                        self.lookups[rule.address] = routine_item
                     rule_item = QTreeWidgetItem([rule.asFea()])
                     routine_item.addChild(rule_item)
                 feature_item.addChild(routine_item)

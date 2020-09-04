@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QPoint
+from PyQt5.QtCore import QPoint, QMargins
 from PyQt5.QtGui import QGlyphRun, QPainter, QRawFont
 from PyQt5.QtWidgets import QWidget
 
@@ -9,6 +9,7 @@ class QVHarfbuzzWidget(QWidget):
         self.size = size
         self.buf = buf
         self.setup_font()
+        self.margins = QMargins(25, 25, 25, 25)
         super(QVHarfbuzzWidget, self).__init__()
 
     def set_buf(self, buf):
@@ -42,5 +43,5 @@ class QVHarfbuzzWidget(QWidget):
             pos = (pos[0] + p[2], pos[1] + p[3])
 
         g.setPositions(poses)
-        qp.drawGlyphRun(QPoint(100, 100), g)
+        qp.drawGlyphRun(e.rect().marginsRemoved(self.margins).bottomLeft(), g)
         qp.end()
