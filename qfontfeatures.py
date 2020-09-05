@@ -4,8 +4,8 @@ from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QWidget, \
 
 
 class QFontFeaturesPanel(QSplitter):
-    def __init__(self, fea):
-        self.fea = fea
+    def __init__(self, fontinfo):
+        self.fontinfo = fontinfo
         super(QFontFeaturesPanel, self).__init__()
         self.setOrientation(Qt.Vertical)
         self.lookups = {}
@@ -16,7 +16,7 @@ class QFontFeaturesPanel(QSplitter):
     def make_class_list(self):
         glyph_class_list = QTreeWidget()
         glyph_class_list.setHeaderLabels(["Glyph Classes", "Contents"])
-        for name,contents in self.fea.namedClasses.items():
+        for name,contents in self.fontinfo.glyph_classes.items():
             class_item = QTreeWidgetItem([name," ".join(contents)])
             glyph_class_list.addTopLevelItem(class_item)
         return glyph_class_list
@@ -24,12 +24,10 @@ class QFontFeaturesPanel(QSplitter):
     def make_free_routine_list(self):
         routine_list = QTreeWidget()
         routine_list.setHeaderLabels(["Routines"])
-        for routine in self.fea.routines:
+        for routine in self.fontinfo.all_lookups:
             name = routine.name or "Anonymous routine"
             routine_item = QTreeWidgetItem([name])
             for rule in routine.rules:
-                if rule.address:
-                    self.lookups[rule.address] = routine_item
                 rule_item = QTreeWidgetItem([rule.asFea()])
                 routine_item.addChild(rule_item)
             routine_list.addTopLevelItem(routine_item)
@@ -38,14 +36,12 @@ class QFontFeaturesPanel(QSplitter):
     def make_feature_list(self):
         feature_list = QTreeWidget()
         feature_list.setHeaderLabels(["Features"])
-        for feature, contents in self.fea.features.items():
+        for feature, contents in self.fontinfo.features.items():
             feature_item = QTreeWidgetItem([feature])
             for routine in contents:
                 name = routine.name or "<Routine>"
                 routine_item = QTreeWidgetItem([name])
                 for rule in routine.rules:
-                    if rule.address:
-                        self.lookups[rule.address] = routine_item
                     rule_item = QTreeWidgetItem([rule.asFea()])
                     routine_item.addChild(rule_item)
                 feature_item.addChild(routine_item)
