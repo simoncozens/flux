@@ -1,6 +1,7 @@
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QWidget, \
     QSplitter, QVBoxLayout
+from classlist import GlyphClassList
 
 
 class QFontFeaturesPanel(QSplitter):
@@ -14,12 +15,7 @@ class QFontFeaturesPanel(QSplitter):
         self.addWidget(self.make_feature_list())
 
     def make_class_list(self):
-        glyph_class_list = QTreeWidget()
-        glyph_class_list.setHeaderLabels(["Glyph Classes", "Contents"])
-        for name,contents in self.fontinfo.glyph_classes.items():
-            class_item = QTreeWidgetItem([name," ".join(contents)])
-            glyph_class_list.addTopLevelItem(class_item)
-        return glyph_class_list
+        return GlyphClassList(self.fontinfo.font)
 
     def make_free_routine_list(self):
         routine_list = QTreeWidget()
