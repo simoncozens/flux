@@ -1,6 +1,6 @@
 from PyQt5.QtCore import Qt, pyqtSlot, QModelIndex, QAbstractTableModel, QItemSelectionModel, pyqtSignal
 from PyQt5.QtGui import QStandardItem, QStandardItemModel
-from PyQt5.QtWidgets import QTreeView, QMenu,QComboBox, QHBoxLayout, QVBoxLayout, QPushButton, QLineEdit, QLabel
+from PyQt5.QtWidgets import QTreeView, QMenu,QComboBox, QHBoxLayout, QVBoxLayout, QPushButton, QLineEdit, QLabel, QDialog, QTextEdit, QDialogButtonBox
 import qtawesome as qta
 import re
 from glyphtools import get_glyph_metrics
@@ -82,7 +82,9 @@ class GlyphClassPredicate(QHBoxLayout):
 
         if PREDICATE_TYPES[self.arguments["type"]]["textbox"]:
           self.textBox = QLineEdit()
-          if PREDICATE_TYPES[self.arguments["type"]]["comparator"]:
+          if "value" in self.arguments:
+            self.textBox.setText(self.arguments["value"])
+          elif PREDICATE_TYPES[self.arguments["type"]]["comparator"]:
             self.textBox.setText("200")
           self.textBox.textChanged.connect(self.changed.emit)
           self.addWidget(self.textBox)
@@ -141,19 +143,52 @@ class GlyphClassPredicate(QHBoxLayout):
         print(a)
         print(self.matches)
 
+class AutomatedGlyphClassDialog(QDialog):
+  def __init__(self, font, predicates = []):
+    super(QDialog, self).__init__()
+    self.font = font
+    v_box_1 = QVBoxLayout()
+    self.gpe = GlyphClassPredicateEditor(font, predicates)
+    v_box_1.addLayout(self.gpe)
+    self.qte = QTextEdit()
+    v_box_1.addWidget(self.qte)
+    buttons = QDialogButtonBox(
+        QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
+        Qt.Horizontal, self)
+    buttons.accepted.connect(self.accept)
+    buttons.rejected.connect(self.reject)
+    v_box_1.addWidget(buttons)
+    self.setLayout(v_box_1)
+    self.gpe.changed.connect(self.update)
+
+  def update(self):
+    self.qte.setText(" ".join(sorted(self.gpe.matches)))
+
+  def getPredicates(self):
+    return self.gpe.predicates
+
+  @staticmethod
+  def editDefinition(font, predicates = []):
+      dialog = AutomatedGlyphClassDialog(font, predicates)
+      result = dialog.exec_()
+      predicates = dialog.getPredicates()
+      return (predicates, result == QDialog.Accepted)
 
 class GlyphClassPredicateEditor(QVBoxLayout):
     changed = pyqtSignal()
 
-    def __init__(self, font, predicates = []):
+    def __init__(self, font, existingpredicates = []):
         super(QVBoxLayout, self).__init__()
         self.font = font
-        if len(predicates) == 0:
-          predicates.append(GlyphClassPredicate(self, {"type": "Name"}))
-        for p in predicates:
+        predicateItems = []
+        if len(existingpredicates) == 0:
+          predicateItems.append(GlyphClassPredicate(self, {"type": "Name"}))
+        for p in existingpredicates:
+          predicateItems.append(GlyphClassPredicate(self, p))
+        for p in predicateItems:
           self.addLayout(p)
-        predicates[-1].minus.setEnabled(False)
-        predicates[0].combiner.hide()
+        predicateItems[-1].minus.setEnabled(False)
+        predicateItems[0].combiner.hide()
         self.matches = []
         self.changed.connect(self.testAll)
 
