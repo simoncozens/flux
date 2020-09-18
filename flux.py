@@ -9,6 +9,7 @@ from qvharfbuzz import QVHarfbuzzWidget
 from qhbshapetrace import QHBShapeTrace
 from fontFeatures.feeLib import FeeParser
 from ttfontinfo import TTFontInfo
+import sys
 
 
 app = 0
@@ -17,15 +18,15 @@ if QApplication.instance():
 else:
     app = QApplication(sys.argv)
 
-font = TTFontInfo("/Users/simon/hacks/fonts/qalam/master_ttf/Qalam-Regular.ttf")
-p = FeeParser(font.filename)
-p.parseFile("/Users/simon/hacks/fonts/qalam/qalam.fee")
-font.fontfeatures = p.fontfeatures
-font.setup_lookups()
+font = TTFontInfo(sys.argv[1])
+#p = FeeParser(font.filename)
+#p.parseFile("/Users/simon/hacks/fonts/qalam/qalam.fee")
+#font.fontfeatures = p.fontfeatures
+#font.setup_lookups()
 
 text = "سبے"
 qhb = QVHarfbuzzWidget(font.vharfbuzz, 56, None)
-hbshapetrace = QHBShapeTrace(font.vharfbuzz, text)
+hbshapetrace = QHBShapeTrace(font, text)
 
 def textChanged(text):
     buf = font.vharfbuzz.shape(text)

@@ -1,13 +1,19 @@
+from collections import namedtuple
 from fontFeatures.ttLib import unparse
-
 from vharfbuzz import Vharfbuzz
+import fontFeatures
+from fontTools.ttLib import TTFont
+from fontFeatures.feaLib.Chaining import suborpos
+
+LookupInfo = namedtuple("LookupInfo", ["name", "language", "feature", "address"])
 
 
 class TTFontInfo:
     def __init__(self, filename):
         self.filename = filename
+        self.font = TTFont(filename)
         self.vharfbuzz = Vharfbuzz(filename)
-        self.fontfeatures = unparse(filename)
+        self.fontfeatures = unparse(self.font)
         self.setup_lookups()
 
     def setup_lookups(self):
@@ -15,19 +21,34 @@ class TTFontInfo:
         self._lookup_info = {}
         self._features = self.fontfeatures.features
         for routine in self.fontfeatures.routines:
-            lid = None
-            for r in routine.rules:
-                lid = r.address or lid
-            self._lookup_info[lid] = routine.name, None, None, None
+            table, lid = routine.address[0:2]
+            extra = routine.address[2:]
+            self._lookup_info[(table, int(lid))] = LookupInfo(
+                routine.name, None, None, extra
+            )
             self._all_lookups.append(routine)
-        # Add non-free routines here
         for key, routines in self._features.items():
             for routine in routines:
-                lid = None
-                for r in routine.rules:
-                    lid = r.address or lid
-                self._lookup_info[lid] = routine.name, None, key, None
-                self._all_lookups.append(routine)
+                table, lid = routine.address[0:2]
+                extra = routine.address[2:]
+                print(key, routine, lid)
+                self._lookup_info[(table, int(lid))] = LookupInfo(
+                    routine.name, None, key, extra
+                )
+                if routine not in self._all_lookups:
+                    self._all_lookups.append(routine)
+        for chain in self.fontfeatures.allRules(fontFeatures.Chaining):
+            for routinelist in chain.lookups:
+                if not routinelist:
+                    continue
+                for routine in routinelist:
+                    table, lid = routine.address[0:2]
+                    extra = routine.address[2:]
+                    self._lookup_info[(table, int(lid))] = LookupInfo(
+                        routine.name, None, key, None
+                    )
+                    if routine not in self._all_lookups:
+                        self._all_lookups.append(routine)
 
     @property
     def glyph_classes(self):
@@ -37,8 +58,8 @@ class TTFontInfo:
     def all_lookups(self):
         return self._all_lookups
 
-    def lookup_info(self, lid):  # name, script, language, feature, address
-        return self._lookup_info[lid]
+    def lookup_info(self, table, lid):  # name, language, feature, address
+        return self._lookup_info[(table, lid)]
 
     @property
     def features(self):
