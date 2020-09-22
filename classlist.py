@@ -4,14 +4,6 @@ from PyQt5.QtWidgets import QTreeView, QMenu
 import qtawesome as qta
 from glyphpredicateeditor import AutomatedGlyphClassDialog
 
-initialClasses = {
-    "above_nuktas": { "type": "manual", "contents": ["sda","dda","tda"]},
-    "below_nuktas": { "type": "manual", "contents": ["sdb","ddb","tdb"]},
-    "all_nuktas": { "type": "automatic" },
-    "above_other_marks": { "type": "manual", "contents": ["toeda","MADDA","DAMMA"]},
-    "all_above_marks": { "type": "automatic" },
-}
-
 class GlyphClassModel(QAbstractTableModel):
     def __init__(self, glyphclasses = {}, parent = None):
         super(GlyphClassModel, self).__init__(parent)
@@ -140,11 +132,10 @@ class GlyphClassModel(QAbstractTableModel):
             return flag | Qt.ItemIsEditable
 
 class GlyphClassList(QTreeView):
-    # def __init__(self, fontinfomodel):
-    def __init__(self, font):
+    def __init__(self, project):
         super(QTreeView, self).__init__()
-        self.font = font
-        self.setModel(GlyphClassModel(initialClasses))
+        self.project = project
+        self.setModel(GlyphClassModel(project.glyphclasses))
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.contextMenu)
         self.doubleClicked.connect(self.doubleClickHandler)

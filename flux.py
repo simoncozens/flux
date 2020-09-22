@@ -9,50 +9,43 @@ from qvharfbuzz import QVHarfbuzzWidget
 from qhbshapetrace import QHBShapeTrace
 from fontFeatures.feeLib import FeeParser
 from ttfontinfo import TTFontInfo
+from fluxproject import FluxProject
 import sys
 
 
-app = 0
-if QApplication.instance():
-    app = QApplication.instance()
-else:
-    app = QApplication(sys.argv)
+app = QApplication(sys.argv)
 
-font = TTFontInfo(sys.argv[1])
-#p = FeeParser(font.filename)
-#p.parseFile("/Users/simon/hacks/fonts/qalam/qalam.fee")
-#font.fontfeatures = p.fontfeatures
-#font.setup_lookups()
+proj = FluxProject(sys.argv[1])
 
-text = "سبے"
-qhb = QVHarfbuzzWidget(font.vharfbuzz, 56, None)
-hbshapetrace = QHBShapeTrace(font, text)
+# text = "سبے"
+# qhb = QVHarfbuzzWidget(font.vharfbuzz, 56, None)
+# hbshapetrace = QHBShapeTrace(font, text)
 
-def textChanged(text):
-    buf = font.vharfbuzz.shape(text)
-    qhb.set_buf(buf)
-    hbshapetrace.set_text(text)
+# def textChanged(text):
+#     buf = font.vharfbuzz.shape(text)
+#     qhb.set_buf(buf)
+#     hbshapetrace.set_text(text)
 
-textChanged(text)
+# textChanged(text)
 
 w = QWidget()
 w.resize(510, 210)
 
 
 v_box_1 = QVBoxLayout()
-v_box_1.addWidget(QFontFeaturesPanel(font))
+v_box_1.addWidget(QFontFeaturesPanel(proj))
 
 v_box_2 = QVBoxLayout()
 
-textbox = QLineEdit()
-textbox.textChanged[str].connect(textChanged)
+# textbox = QLineEdit()
+# textbox.textChanged[str].connect(textChanged)
 
-split = QSplitter()
-split.setOrientation(Qt.Vertical)
-split.addWidget(textbox)
-split.addWidget(qhb)
-split.addWidget(hbshapetrace)
-v_box_2.addWidget(split)
+# split = QSplitter()
+# split.setOrientation(Qt.Vertical)
+# split.addWidget(textbox)
+# split.addWidget(qhb)
+# split.addWidget(hbshapetrace)
+# v_box_2.addWidget(split)
 
 h_box = QHBoxLayout()
 h_box.addLayout(v_box_1)
