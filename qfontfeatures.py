@@ -12,7 +12,7 @@ class QFontFeaturesPanel(QSplitter):
         self.lookups = {}
         self.addWidget(self.make_class_list())
         self.addWidget(self.make_free_routine_list())
-        # self.addWidget(self.make_feature_list())
+        self.addWidget(self.make_feature_list())
 
     def make_class_list(self):
         return GlyphClassList(self.project)
@@ -32,7 +32,7 @@ class QFontFeaturesPanel(QSplitter):
     def make_feature_list(self):
         feature_list = QTreeWidget()
         feature_list.setHeaderLabels(["Features"])
-        for feature, contents in self.project.features.items():
+        for feature, contents in self.project.fontfeatures.features.items():
             feature_item = QTreeWidgetItem([feature])
             for routine in contents:
                 name = routine.name or "<Routine>"

@@ -26,11 +26,12 @@ class GlyphClassPredicate(QHBoxLayout):
 
     def __init__(self, editor, arguments = {}):
         super(QHBoxLayout, self).__init__()
+        print("Initializing with ", arguments)
         self.editor = editor
-        self.font = editor.font
+        self.project = editor.project
         self.matches = []
-        self.allGlyphs = self.font.getGlyphOrder()
-        self.metrics = { g: get_glyph_metrics(self.font, g) for g in self.allGlyphs }
+        self.allGlyphs = self.project.font.glyphs
+        self.metrics = { g: get_glyph_metrics(self.project.font.font, g) for g in self.allGlyphs }
         self.arguments = arguments
         self.predicateType = QComboBox()
         for n in PREDICATE_TYPES.keys():
@@ -65,18 +66,31 @@ class GlyphClassPredicate(QHBoxLayout):
         if self.arguments["type"] == "Name":
           self.nameCB = QComboBox()
           self.nameCB.addItems(["begins","ends","matches"])
+          if "comparator" in self.arguments:
+            ix = self.nameCB.findText(self.arguments["comparator"])
+            if ix != 1:
+              self.nameCB.setCurrentIndex(ix)
           self.addWidget(self.nameCB)
           self.nameCB.currentIndexChanged.connect(self.changed.emit)
 
         if self.arguments["type"] == "Is category":
           self.categoryCB = QComboBox()
           self.categoryCB.addItems(["base","ligature","mark","component"])
+          if "category" in self.arguments:
+            ix = self.categoryCB.findText(self.arguments["category"])
+            if ix != 1:
+              self.categoryCB.setCurrentIndex(ix)
+
           self.addWidget(self.categoryCB)
           self.categoryCB.currentIndexChanged.connect(self.changed.emit)
 
         if PREDICATE_TYPES[self.arguments["type"]]["comparator"]:
           self.comparator = QComboBox()
           self.comparator.addItems(["<","<=","=", ">=", ">"])
+          if "comparator" in self.arguments:
+            ix = self.comparator.findText(self.arguments["comparator"])
+            if ix != 1:
+              self.comparator.setCurrentIndex(ix)
           self.comparator.currentIndexChanged.connect(self.changed.emit)
           self.addWidget(self.comparator)
 
@@ -160,6 +174,7 @@ class AutomatedGlyphClassDialog(QDialog):
     v_box_1.addWidget(buttons)
     self.setLayout(v_box_1)
     self.gpe.changed.connect(self.update)
+    self.update()
 
   def update(self):
     self.qte.setText(" ".join(sorted(self.gpe.matches)))
@@ -168,8 +183,8 @@ class AutomatedGlyphClassDialog(QDialog):
     return self.gpe.predicates
 
   @staticmethod
-  def editDefinition(font, predicates = []):
-      dialog = AutomatedGlyphClassDialog(font, predicates)
+  def editDefinition(project, predicates = []):
+      dialog = AutomatedGlyphClassDialog(project, predicates)
       result = dialog.exec_()
       predicates = dialog.getPredicates()
       return (predicates, result == QDialog.Accepted)
@@ -177,9 +192,9 @@ class AutomatedGlyphClassDialog(QDialog):
 class GlyphClassPredicateEditor(QVBoxLayout):
     changed = pyqtSignal()
 
-    def __init__(self, font, existingpredicates = []):
+    def __init__(self, project, existingpredicates = []):
         super(QVBoxLayout, self).__init__()
-        self.font = font
+        self.project = project
         predicateItems = []
         if len(existingpredicates) == 0:
           predicateItems.append(GlyphClassPredicate(self, {"type": "Name"}))
@@ -191,6 +206,7 @@ class GlyphClassPredicateEditor(QVBoxLayout):
         predicateItems[0].combiner.hide()
         self.matches = []
         self.changed.connect(self.testAll)
+        self.testAll()
 
     def addRow(self):
         self.addLayout(GlyphClassPredicate(self, {"type": "Name"}))
@@ -208,3 +224,6 @@ class GlyphClassPredicateEditor(QVBoxLayout):
           else:
             self.matches = p.matches
 
+    @property
+    def predicates(self):
+      return [self.itemAt(i) for i in range(self.count())]

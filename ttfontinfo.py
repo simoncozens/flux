@@ -3,7 +3,6 @@ from fontFeatures.ttLib import unparse
 from vharfbuzz import Vharfbuzz
 import fontFeatures
 from fontTools.ttLib import TTFont
-from fontFeatures.feaLib.Chaining import suborpos
 
 LookupInfo = namedtuple("LookupInfo", ["name", "language", "feature", "address"])
 

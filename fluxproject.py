@@ -1,11 +1,12 @@
 from lxml import etree
 from fontFeatures import FontFeatures, Routine, Substitution
-
+from fontFeatures.fontProxy import FontProxy
 
 class FluxProject:
     def __init__(self, file):
         self.xml = etree.parse(file).getroot()
         self.fontfile = self.xml.find("source").get("file")
+        self.font = FontProxy.opener(self.fontfile)
         self.fontfeatures = FontFeatures()
         self.xmlToFontFeatures()
 
@@ -17,6 +18,7 @@ class FluxProject:
                 thisclass = self.glyphclasses[c.get("name")] = {}
                 if c.get("automatic") == "true":
                     thisclass["type"] = "automatic"
+                    thisclass["predicates"] = [ dict(p.items()) for p in c.findall("predicate") ]
                 else:
                     thisclass["type"] = "manual"
                     thisclass["contents"] = [g.text for g in c]

@@ -151,7 +151,7 @@ class GlyphClassList(QTreeView):
 
     def doubleClickHandler(self, index):
         if self.model().isAutomatic(index) and index.column() == 1:
-            AutomatedGlyphClassDialog.editDefinition(self.font,self.model().getPredicates(index))
+            AutomatedGlyphClassDialog.editDefinition(self.project,self.model().getPredicates(index))
 
     @pyqtSlot()
     def deleteClass(self):
@@ -166,4 +166,8 @@ class GlyphClassList(QTreeView):
 
     @pyqtSlot()
     def addComputedClass(self):
-        pass
+        index = self.model().appendRow()
+        self.model().glyphclasses[""] = {"type": "automatic"}
+        self.selectionModel().select(
+            index,
+            QItemSelectionModel.ClearAndSelect)
