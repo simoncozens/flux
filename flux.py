@@ -5,11 +5,13 @@ from fontFeatures.ttLib import unparse
 from fontTools.ttLib import TTFont
 from fontFeatures.optimizer import Optimizer
 from qfontfeatures import QFontFeaturesPanel
-from qvharfbuzz import QVHarfbuzzWidget
+from qbufferrenderer import QBufferRenderer
 from qhbshapetrace import QHBShapeTrace
 from fontFeatures.feeLib import FeeParser
 from ttfontinfo import TTFontInfo
 from fluxproject import FluxProject
+from fontFeatures.jankyPOS.Buffer import Buffer
+from fontFeatures.shaperLib.Shaper import Shaper
 import sys
 
 
@@ -18,13 +20,18 @@ app = QApplication(sys.argv)
 proj = FluxProject(sys.argv[1])
 
 # text = "سبے"
-# qhb = QVHarfbuzzWidget(font.vharfbuzz, 56, None)
 # hbshapetrace = QHBShapeTrace(font, text)
 
-# def textChanged(text):
-#     buf = font.vharfbuzz.shape(text)
-#     qhb.set_buf(buf)
-#     hbshapetrace.set_text(text)
+buf = Buffer(proj.font.font, unicodes="سبے")
+shaper = Shaper(proj.fontfeatures, proj.font)
+shaper.execute(buf)
+
+qbr = QBufferRenderer(proj, buf)
+
+def textChanged(text):
+    buf = font.vharfbuzz.shape(text)
+    qhb.set_buf(buf)
+    hbshapetrace.set_text(text)
 
 # textChanged(text)
 
@@ -36,16 +43,15 @@ v_box_1 = QVBoxLayout()
 v_box_1.addWidget(QFontFeaturesPanel(proj))
 
 v_box_2 = QVBoxLayout()
+textbox = QLineEdit()
+textbox.textChanged[str].connect(textChanged)
 
-# textbox = QLineEdit()
-# textbox.textChanged[str].connect(textChanged)
-
-# split = QSplitter()
-# split.setOrientation(Qt.Vertical)
-# split.addWidget(textbox)
-# split.addWidget(qhb)
+split = QSplitter()
+split.setOrientation(Qt.Vertical)
+split.addWidget(textbox)
+split.addWidget(qbr)
 # split.addWidget(hbshapetrace)
-# v_box_2.addWidget(split)
+v_box_2.addWidget(split)
 
 h_box = QHBoxLayout()
 h_box.addLayout(v_box_1)
