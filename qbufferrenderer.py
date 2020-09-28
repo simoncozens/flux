@@ -16,13 +16,13 @@ class QBufferRenderer(QGraphicsView):
         self.scene = QGraphicsScene(self)
         xcursor = 0
         print(self.buf.serialize())
-        for g in self.buf.items:
-            self.drawGlyph_glyphs(self.scene, g.glyph, xcursor + (g.position.xPlacement or 0), (g.position.yPlacement or 0))
-            xcursor = xcursor + g.position.xAdvance
-        # self.drawGlyph_glyphs(self.scene, "sdb", 351-19,-131)
-        # self.drawGlyph_glyphs(self.scene, "BEm2", 351,86)
-        # self.drawGlyph_glyphs(self.scene, "tdb", 351+67+258,45)
-        # self.drawGlyph_glyphs(self.scene, "JIMi6", 351+258,167)
+        if len(self.buf) > 0:
+            items = self.buf.items
+            if self.buf.direction == "RTL":
+                items = list(reversed(items))
+            for g in items:
+                self.drawGlyph_glyphs(self.scene, g.glyph, xcursor + (g.position.xPlacement or 0), (g.position.yPlacement or 0))
+                xcursor = xcursor + g.position.xAdvance
         self.setScene(self.scene)
 
 
@@ -51,7 +51,7 @@ class QBufferRenderer(QGraphicsView):
 
     def set_buf(self, buf):
         self.buf = buf
-        self.update()
+        self.set_scene_from_buf()
 
     def resizeEvent(self, e):
         self.fitInView(self.scene.sceneRect(), Qt.KeepAspectRatio)

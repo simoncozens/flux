@@ -28,12 +28,5 @@ class FluxProject:
 
     def xmlToFontFeatures(self):
         for xmlroutine in self.xml.find("routines"):
-            r = Routine(name=xmlroutine.get("name"))
-            for xmlrule in xmlroutine:
-                if xmlrule.tag == "substitute":
-                    rule = Substitution(
-                        self._slotArray(xmlrule.find("from")),
-                        self._slotArray(xmlrule.find("to")),
-                    )
-                    r.addRule(rule)
+            r = Routine.fromXML(xmlroutine)
             self.fontfeatures.addRoutine(r)
