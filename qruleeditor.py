@@ -101,7 +101,7 @@ class QRuleEditor(QSplitter):
         print("Add a glyph")
         l = self.sender()
         glyphname = l.text()
-        self.rule.glyphs[l.ix].append(glyphname)
+        self.rule.glyphs[l.slotindex].append(glyphname)
         self.arrangeSlots()
 
     def makeASlot(self, slotnumber, contents, style=None, editingWidgets = None):
@@ -123,7 +123,7 @@ class QRuleEditor(QSplitter):
             line = QLineEdit()
             line.slotindex = ix
             line.returnPressed.connect(self.addGlyphToSlot)
-            slotLayout.addWidget(QLineEdit())
+            slotLayout.addWidget(line)
             slotLayout.addStretch()
             if editingWidgets:
                 slotLayout.addWidget(editingWidgets[ix])
@@ -142,9 +142,19 @@ class QRuleEditor(QSplitter):
                 editingWidgets.append(widget)
         return editingWidgets
 
+    def clearLayout(self, layout):
+        if layout is not None:
+            while layout.count():
+                item = layout.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+                else:
+                    self.clearLayout(item.layout())
+
     def arrangeSlots(self):
-        for i in reversed(range(self.slotview.count())):
-            self.slotview.itemAt(i).widget().setParent(None)
+        self.clearLayout(self.slotview)
+
         self.slotview.addStretch()
         slotnumber = 0
         if hasattr(self.rule, "precontext"):
