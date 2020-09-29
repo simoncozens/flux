@@ -1,23 +1,37 @@
-from PyQt5.QtWidgets import QWidget, QApplication, QScrollArea, QHBoxLayout, QVBoxLayout, QSplitter, QLabel, QLineEdit, QSpinBox, QPushButton
+from PyQt5.QtWidgets import (
+    QWidget,
+    QApplication,
+    QScrollArea,
+    QHBoxLayout,
+    QVBoxLayout,
+    QSplitter,
+    QLabel,
+    QLineEdit,
+    QSpinBox,
+    QPushButton,
+)
 from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot
 from fontFeatures.shaperLib.Shaper import Shaper
 from fontFeatures.jankyPOS.Buffer import Buffer
 from qbufferrenderer import QBufferRenderer
+from fontFeatures import Positioning, ValueRecord, Substitution, Chaining
 import sys
+
 
 class QValueRecordEditor(QWidget):
     changed = pyqtSignal()
     fieldnames = ["xPlacement", "yPlacement", "xAdvance", "yAdvance"]
     labelnames = ["Δx", "Δy", "+x", "+y"]
+
     def __init__(self, vr):
         self.valuerecord = vr
         self.boxlayout = QHBoxLayout()
         self.boxes = []
         super(QWidget, self).__init__()
-        for ix,k in enumerate(self.fieldnames):
+        for ix, k in enumerate(self.fieldnames):
             t = QSpinBox()
             t.setSingleStep(10)
-            t.setRange(-10000,10000)
+            t.setRange(-10000, 10000)
             t.setValue(getattr(self.valuerecord, k) or 0)
             t.valueChanged.connect(self.serialize)
             # label = QLabel(t)
@@ -28,18 +42,17 @@ class QValueRecordEditor(QWidget):
         self.setLayout(self.boxlayout)
 
     def serialize(self):
-        for ix,k in enumerate(self.fieldnames):
+        for ix, k in enumerate(self.fieldnames):
             try:
                 val = int(self.boxes[ix].text())
                 setattr(self.valuerecord, k, int(self.boxes[ix].value()))
             except Exception as e:
                 print(e)
-        print(self.valuerecord.asFea())
         self.changed.emit()
 
 
 class QRuleEditor(QSplitter):
-    def __init__(self, project, rule): # Rule is some fontFeatures object
+    def __init__(self, project, rule):  # Rule is some fontFeatures object
         self.project = project
         self.rule = rule
         self.representative_string = self.makeRepresentativeString()
@@ -51,15 +64,13 @@ class QRuleEditor(QSplitter):
 
         super(QRuleEditor, self).__init__()
 
-
         self.slotview = QHBoxLayout()
         self.arrangeSlots()
         scroll = QScrollArea()
         scroll.setLayout(self.slotview)
 
-
-        self.outputview_before = QBufferRenderer(project, self.beforeBuffer())
-        self.outputview_after  = QBufferRenderer(project, self.afterBuffer())
+        self.outputview_before = QBufferRenderer(project, self.makeBuffer("before"))
+        self.outputview_after = QBufferRenderer(project, self.makeBuffer("after"))
         self.before_after = QWidget()
         self.before_after_layout_v = QVBoxLayout()
 
@@ -86,25 +97,62 @@ class QRuleEditor(QSplitter):
     def resetBuffer(self):
         self.asFea.setText(self.rule.asFea())
         print(self.representative_string)
-        self.outputview_after.set_buf(self.afterBuffer())
-        self.outputview_before.set_buf(self.beforeBuffer())
+        self.outputview_before.set_buf(self.makeBuffer("before"))
+        self.outputview_after.set_buf(self.makeBuffer("after"))
 
     @pyqtSlot()
     def changeRepresentativeString(self):
         l = self.sender()
-        print("L was %i , %s " % (l.slotnumber, l.text()))
         self.representative_string[l.slotnumber] = l.text()
         self.resetBuffer()
 
     @pyqtSlot()
+    def replacementChanged(self):
+        l = self.sender()
+        self.rule.replacement[l.position] = l.text()
+        self.resetBuffer()
+
+    @pyqtSlot()
     def addGlyphToSlot(self):
-        print("Add a glyph")
         l = self.sender()
         glyphname = l.text()
-        self.rule.glyphs[l.slotindex].append(glyphname)
+        l.contents[l.slotindex].append(glyphname)
         self.arrangeSlots()
+        self.representative_string = self.makeRepresentativeString()
+        self.resetBuffer()
 
-    def makeASlot(self, slotnumber, contents, style=None, editingWidgets = None):
+    @pyqtSlot()
+    def addRemoveSlot(self):
+        sender = self.sender()
+        action = sender.text()
+        if action == "<+":
+            sender.contents.insert(0, [])
+            # If these are input glyphs, add another replacement etc.
+            if sender.contents == self.rule.shaper_inputs():
+                if isinstance(self.rule, Positioning):
+                    self.rule.valuerecords.insert(0, ValueRecord())
+                elif isinstance(self.rule, Substitution):
+                    self.rule.replacement.insert(0, [])
+                elif isinstance(self.rule, Chaining):
+                    self.rule.lookups.insert(0, [])
+        elif action == "+>":
+            sender.contents.append([])
+            # If these are input glyphs, add another replacement etc.
+            if sender.contents == self.rule.shaper_inputs():
+                if isinstance(self.rule, Positioning):
+                    self.rule.valuerecords.append(ValueRecord())
+                elif isinstance(self.rule, Substitution):
+                    self.rule.replacement.append([])
+                elif isinstance(self.rule, Chaining):
+                    self.rule.lookups.append([])
+
+        elif action == "-":
+            del sender.contents[self.sender().ix]
+        self.arrangeSlots()
+        self.representative_string = self.makeRepresentativeString()
+        self.resetBuffer()
+
+    def makeASlot(self, slotnumber, contents, style=None, editingWidgets=None):
         for ix, glyphslot in enumerate(contents):
             slot = QWidget()
             slotLayout = QVBoxLayout()
@@ -122,11 +170,36 @@ class QRuleEditor(QSplitter):
 
             line = QLineEdit()
             line.slotindex = ix
+            line.contents = contents
             line.returnPressed.connect(self.addGlyphToSlot)
             slotLayout.addWidget(line)
             slotLayout.addStretch()
             if editingWidgets:
                 slotLayout.addWidget(editingWidgets[ix])
+
+            pushbuttonsArea = QWidget()
+            pushbuttonsLayout = QHBoxLayout()
+            pushbuttonsArea.setLayout(pushbuttonsLayout)
+            if ix == 0:
+                addASlotLeft = QPushButton("<+")
+                addASlotLeft.contents = contents
+                addASlotLeft.clicked.connect(self.addRemoveSlot)
+                pushbuttonsLayout.addWidget(addASlotLeft)
+            pushbuttonsLayout.addStretch()
+            if not (editingWidgets and len(contents) == 1):
+                removeASlot = QPushButton("-")
+                removeASlot.contents = contents
+                removeASlot.ix = ix
+                removeASlot.clicked.connect(self.addRemoveSlot)
+                pushbuttonsLayout.addWidget(removeASlot)
+            pushbuttonsLayout.addStretch()
+            if ix == len(contents) - 1:
+                addASlotRight = QPushButton("+>")
+                addASlotRight.contents = contents
+                addASlotRight.clicked.connect(self.addRemoveSlot)
+                pushbuttonsLayout.addWidget(addASlotRight)
+            slotLayout.addWidget(pushbuttonsArea)
+
             slotnumber = slotnumber + 1
 
             slot.setLayout(slotLayout)
@@ -135,11 +208,17 @@ class QRuleEditor(QSplitter):
 
     def makeEditingWidgets(self):
         editingWidgets = []
-        for ix,i in enumerate(self.rule.shaper_inputs()):
-            if isinstance(self.rule,Positioning):
+        for ix, i in enumerate(self.rule.shaper_inputs()):
+            if isinstance(self.rule, Positioning):
                 widget = QValueRecordEditor(self.rule.valuerecords[ix])
                 widget.changed.connect(self.resetBuffer)
                 editingWidgets.append(widget)
+            if isinstance(self.rule, Substitution):
+                widget = QLineEdit(i and i[0] or "")
+                widget.position = ix
+                widget.returnPressed.connect(self.replacementChanged)
+                editingWidgets.append(widget)
+
         return editingWidgets
 
     def clearLayout(self, layout):
@@ -158,49 +237,48 @@ class QRuleEditor(QSplitter):
         self.slotview.addStretch()
         slotnumber = 0
         if hasattr(self.rule, "precontext"):
-            slotnumber = self.makeASlot(slotnumber, self.rule.precontext,"background-color:#ffaaaa;")
+            slotnumber = self.makeASlot(
+                slotnumber, self.rule.precontext, "background-color:#ffaaaa;"
+            )
 
         editingWidgets = self.makeEditingWidgets()
-        slotnumber = self.makeASlot(slotnumber, self.rule.shaper_inputs(), editingWidgets=editingWidgets)
+        slotnumber = self.makeASlot(
+            slotnumber, self.rule.shaper_inputs(), editingWidgets=editingWidgets
+        )
 
         if hasattr(self.rule, "postcontext"):
-            self.makeASlot(slotnumber, self.rule.postcontext,"background-color:#aaaaff;")
+            self.makeASlot(
+                slotnumber, self.rule.postcontext, "background-color:#aaaaff;"
+            )
 
         self.slotview.addStretch()
 
     def makeRepresentativeString(self):
         inputglyphs = []
+        # "x and x[0]" thing because slots may be empty if newly added
         if hasattr(self.rule, "precontext"):
-            inputglyphs.extend([ x[0] for x in self.rule.precontext ])
+            inputglyphs.extend([x and x[0] for x in self.rule.precontext])
 
-        inputglyphs.extend( [ x[0] for x in self.rule.shaper_inputs() ] )
+        inputglyphs.extend([x and x[0] for x in self.rule.shaper_inputs()])
 
         if hasattr(self.rule, "postcontext"):
-            inputglyphs.extend([ x[0] for x in self.rule.postcontext ])
+            inputglyphs.extend([x and x[0] for x in self.rule.postcontext])
 
-        return inputglyphs
+        return [x for x in inputglyphs if x]
 
-    def beforeBuffer(self):
-        buf = Buffer(self.project.font,
-            glyphs = self.representative_string,
-            direction = "RTL")
+    def makeBuffer(self, before_after="before"):
+        buf = Buffer(
+            self.project.font, glyphs=self.representative_string, direction="RTL"
+        )
         shaper = Shaper(proj.fontfeatures, proj.font)
         shaper.execute(buf)
-        return buf
-
-    def afterBuffer(self):
-        buf = Buffer(self.project.font,
-            glyphs = self.representative_string,
-            direction = "RTL")
-        shaper = Shaper(proj.fontfeatures, proj.font)
-        shaper.execute(buf)
-        self.rule.apply_to_buffer(buf)
+        if before_after == "after":
+            self.rule.apply_to_buffer(buf)
         return buf
 
 
 if __name__ == "__main__":
     from fluxproject import FluxProject
-    from fontFeatures import Positioning, ValueRecord
 
     app = 0
     if QApplication.instance():
@@ -216,16 +294,18 @@ if __name__ == "__main__":
     proj.fontfeatures.features["mark"] = [proj.fontfeatures.routines[2]]
     proj.fontfeatures.features["curs"] = [proj.fontfeatures.routines[1]]
 
-    v = ValueRecord(yPlacement=0)
-    rule = Positioning( [["dda", "tda"]], [v],
-        precontext = [["BEm2","BEi3"]],
-        postcontext = [["GAFm1", "GAFf1"]],
-    )
+    # v = ValueRecord(yPlacement=0)
+    # rule = Positioning(
+    #     [["dda", "tda"]],
+    #     [v],
+    #     precontext=[["BEm2", "BEi3"]],
+    #     postcontext=[["GAFm1", "GAFf1"]],
+    # )
+    rule = Substitution(input_=[["space"]], replacement=[["space"]])
 
     v_box_1.addWidget(QRuleEditor(proj, rule))
 
     w.setLayout(v_box_1)
-
 
     w.show()
     sys.exit(app.exec_())
