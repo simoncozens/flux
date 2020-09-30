@@ -27,6 +27,15 @@ class FluxProject:
         return [[g.text for g in slot.findall("glyph")] for slot in list(el)]
 
     def xmlToFontFeatures(self):
+        routines = {}
         for xmlroutine in self.xml.find("routines"):
             r = Routine.fromXML(xmlroutine)
+            routines[r.name] = r
             self.fontfeatures.addRoutine(r)
+        for xmlfeature in self.xml.find("features"):
+            # Temporary until we refactor fontfeatures
+            featurename = xmlfeature.get("name")
+            for r in xmlfeature:
+                self.fontfeatures.addFeature(featurename, [routines[r.get("name")]])
+
+
