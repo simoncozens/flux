@@ -9,6 +9,8 @@ from PyQt5.QtWidgets import (
     QLineEdit,
     QSpinBox,
     QPushButton,
+    QCheckBox,
+    QComboBox
 )
 from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot
 from fontFeatures.shaperLib.Shaper import Shaper
@@ -58,6 +60,8 @@ class QRuleEditor(QSplitter):
         self.precontextslots = []
         self.postcontextslots = []
         self.outputslots = []
+        self.buffer_direction = "LTR"
+        self.buffer_script = "Latin"
 
         super(QRuleEditor, self).__init__()
 
@@ -72,12 +76,18 @@ class QRuleEditor(QSplitter):
 
         self.asFea = QLabel()
 
+        featureButtons = QWidget()
+        self.featureButtonLayout = QHBoxLayout()
+        featureButtons.setLayout(self.featureButtonLayout)
+        self.selectedFeatures = []
+
         layoutarea = QWidget()
         self.before_after_layout_h = QHBoxLayout()
         self.before_after_layout_h.addWidget(self.outputview_before)
         self.before_after_layout_h.addWidget(self.outputview_after)
         layoutarea.setLayout(self.before_after_layout_h)
 
+        self.before_after_layout_v.addWidget(featureButtons)
         self.before_after_layout_v.addWidget(self.asFea)
         self.before_after_layout_v.addWidget(layoutarea)
 
@@ -207,6 +217,18 @@ class QRuleEditor(QSplitter):
             self.slotview.addWidget(slot)
         return slotnumber
 
+    def lookupCombobox(self, current):
+        c = QComboBox()
+        names = [x.name for x in self.project.fontfeatures.routines]
+        for name in names:
+            c.addItem(name)
+        if current in names:
+            c.setCurrentIndex(names.index(current))
+        else: # XXX fontFeatures needs refactoring
+            c.addItem(current)
+            c.setCurrentIndex(len(names))
+        return c
+
     def makeEditingWidgets(self):
         editingWidgets = []
         for ix, i in enumerate(self.rule.shaper_inputs()):
@@ -214,11 +236,15 @@ class QRuleEditor(QSplitter):
                 widget = QValueRecordEditor(self.rule.valuerecords[ix])
                 widget.changed.connect(self.resetBuffer)
                 editingWidgets.append(widget)
-            if isinstance(self.rule, Substitution):
+            elif isinstance(self.rule, Substitution):
                 replacements = [x[0] for x in self.rule.replacement if x]
                 widget = QLineEdit(" ".join(replacements) or "")
                 widget.position = ix
                 widget.returnPressed.connect(self.replacementChanged)
+                editingWidgets.append(widget)
+            elif isinstance(self.rule, Chaining):
+                lookup = self.rule.lookups[ix] and self.rule.lookups[ix][0].name
+                widget = self.lookupCombobox(lookup)
                 editingWidgets.append(widget)
 
         return editingWidgets
@@ -269,14 +295,57 @@ class QRuleEditor(QSplitter):
         if hasattr(self.rule, "postcontext"):
             inputglyphs.extend([x and x[0] for x in self.rule.postcontext])
 
-        return [x for x in inputglyphs if x]
+        representative_string = [x for x in inputglyphs if x]
+
+        # We use this representative string to guess information about
+        # how the *real* shaping process will take place; buffer direction
+        # and script, and hence choice of complex shaper, and hence from
+        # that choice of features to be processed.
+        unicodes = [self.project.font.map_glyph_to_unicode(x) for x in representative_string]
+        unicodes = [x for x in unicodes if x]
+        tounicodes = " ".join(map (chr, unicodes))
+        print(tounicodes)
+        bufferForGuessing = Buffer(self.project.font, unicodes = tounicodes)
+        self.buffer_direction = bufferForGuessing.direction
+        self.buffer_script = bufferForGuessing.script
+        shaper = Shaper(self.project.fontfeatures, self.project.font)
+        shaper.execute(bufferForGuessing)
+        self.availableFeatures = []
+        for stage in shaper.stages:
+            if not isinstance(stage, list):
+                continue
+            for f in stage:
+                if f not in self.availableFeatures and f in self.project.fontfeatures.features:
+                    self.availableFeatures.append(f)
+        self.makeFeatureButtons()
+
+        return representative_string
+
+    def makeFeatureButtons(self):
+        self.clearLayout(self.featureButtonLayout)
+        for f in self.availableFeatures:
+            self.selectedFeatures.append(f)
+            featureButton = QCheckBox(f)
+            featureButton.setChecked(True)
+            featureButton.stateChanged.connect(self.resetBuffer)
+            self.featureButtonLayout.addWidget(featureButton)
+
+    def makeShaperFeatureArray(self):
+        features = []
+        for i in range(self.featureButtonLayout.count()):
+            item = self.featureButtonLayout.itemAt(i).widget()
+            features.append({ "tag": item.text(), "value": item.isChecked() })
+        print(features)
+        return features
+
 
     def makeBuffer(self, before_after="before"):
         buf = Buffer(
-            self.project.font, glyphs=self.representative_string, direction="RTL"
+            self.project.font, glyphs=self.representative_string, direction=self.buffer_direction
         )
         shaper = Shaper(self.project.fontfeatures, self.project.font)
-        shaper.execute(buf)
+
+        shaper.execute(buf,features = self.makeShaperFeatureArray())
         if before_after == "after" and self.rule:
             self.rule.apply_to_buffer(buf)
         return buf
