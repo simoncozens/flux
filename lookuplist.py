@@ -7,10 +7,10 @@ from PyQt5.QtWidgets import (
     QMenu,
     QAbstractItemView
 )
-from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, QAbstractItemModel, pyqtSlot
+from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, QAbstractItemModel, pyqtSlot, QItemSelectionModel
 from PyQt5.QtGui import QStandardItemModel
 import sys
-from fontFeatures import Routine, Attachment
+from fontFeatures import Routine, Attachment, Substitution, Positioning, Chaining
 from fluxproject import FluxProject
 
 class LookupList(QTreeView):
@@ -30,17 +30,29 @@ class LookupList(QTreeView):
     def contextMenu(self, position):
         indexes = self.selectedIndexes()
         menu = QMenu()
-        if len(indexes) == 0:
-            menu.addAction("Add routine", self.deleteClass)
-        if isinstance(indexes[0].internalPointer(), Routine):
-            menu.addAction("Delete routine", self.deleteClass)
-            menu.addAction("Add substitution rule", self.addClass)
-            menu.addAction("Add positioning rule", self.addClass)
-            menu.addAction("Add attachment rule", self.addClass)
-            menu.addAction("Add chaining rule", self.addClass)
-        else:
-            menu.addAction("Delete rule", self.deleteClass)
+        menu.addAction("Add routine", self.addRoutine)
+        if len(indexes) > 0:
+            if isinstance(indexes[0].internalPointer(), Routine):
+                menu.addAction("Delete routine", self.deleteItem)
+                menu.addAction("Add substitution rule", self.addSubRule)
+                menu.addAction("Add positioning rule", self.addPosRule)
+                # menu.addAction("Add attachment rule", self.addAttRule)
+                menu.addAction("Add chaining rule", self.addChainRule)
+            else:
+                menu.addAction("Delete rule", self.deleteItem)
         menu.exec_(self.viewport().mapToGlobal(position))
+
+    @pyqtSlot()
+    def addSubRule(self):
+        self.model().addRule(self.selectedIndexes()[0], Substitution([],[]))
+
+    @pyqtSlot()
+    def addPosRule(self):
+        self.model().addRule(self.selectedIndexes()[0], Positioning([],[]))
+
+    @pyqtSlot()
+    def addChainRule(self):
+        self.model().addRule(self.selectedIndexes()[0], Chaining([],[]))
 
     def doubleClickHandler(self, index):
         if isinstance(index.internalPointer(), Routine):
@@ -51,20 +63,18 @@ class LookupList(QTreeView):
         self.parent.editor.showRuleEditor(index.internalPointer())
 
     @pyqtSlot()
-    def deleteClass(self):
-        self.model().removeRows(self.selectedIndexes())
-
-    @pyqtSlot()
-    def addClass(self):
+    def addRoutine(self):
         index = self.model().appendRow()
         self.selectionModel().select(
             index,
-            QItemSelectionModel.ClearAndSelect)
+            QItemSelectionModel.ClearAndSelect
+        )
+        self.edit(index)
 
     @pyqtSlot()
-    def addComputedClass(self):
-        index = self.model().appendRow()
-        pass
+    def deleteItem(self):
+        # Check if routine is in use
+        self.model().removeRows(self.selectedIndexes())
 
 class LookupListModel(QAbstractItemModel):
     def __init__(self, proj, parent = None):
@@ -107,16 +117,35 @@ class LookupListModel(QAbstractItemModel):
             ix = self.createIndex(row, column, item.rules[row])
         return ix
 
+    def setData(self, index, value, role=Qt.EditRole):
+        if role != Qt.EditRole:
+            return False
+
+        if index.isValid() and 0 <= index.row() < len(self.lookups):
+            self.lookups[index.row()].name = value
+            # self.dataChanged.emit(index, index)
+            return True
+
+        return False
+
+    def indexIsRoutine(self, index):
+        item = index.internalPointer()
+        return isinstance(item, Routine)
+
+    def indexIsRule(self, index):
+        item = index.internalPointer()
+        return not isinstance(item, Routine)
+
     def data(self, index, role=Qt.DisplayRole):
         # print("Getting index ", index.row(), index.column(), index.internalPointer())
         if not index.isValid():
             return None
-        if role == Qt.DisplayRole:
+        if role == Qt.DisplayRole or role == Qt.EditRole:
             item = index.internalPointer()
-            if isinstance(item, Routine):
+            if self.indexIsRoutine(index):
                 return item.name
             else:
-                fea = item.asFea()
+                fea = item.asFea() or "<New %s Rule>" % item.__class__.__name__
                 return fea.split("\n")[0]
         return None
 
@@ -128,10 +157,43 @@ class LookupListModel(QAbstractItemModel):
         if not index.isValid():
             return Qt.ItemIsEnabled
         flag = Qt.ItemFlags(QAbstractItemModel.flags(self, index))
-        if isinstance(index.internalPointer(), Routine):
+        if self.indexIsRoutine(index):
             return flag | Qt.ItemIsEditable | Qt.ItemIsDragEnabled
         return flag | Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
 
+    def insertRows(self, position, item=None, rows=1, index=QModelIndex()):
+        """ Insert a row into the model. """
+        self.beginInsertRows(QModelIndex(), position, position + rows - 1)
+
+        self.lookups.append(Routine(name="",rules=[]))
+        self.endInsertRows()
+        return True
+
+    def appendRow(self):
+        self.insertRows(len(self.lookups))
+        return self.index(len(self.lookups)-1, 0)
+
+    def removeRows(self, indexes):
+        for i in indexes:
+            self.removeRow(i)
+
+    def removeRow(self, index):
+        """ Remove a row from the model. """
+        self.beginRemoveRows(self.parent(index), index.row(), index.row())
+        if self.indexIsRoutine(index):
+            del self.lookups[index.row()]
+        else:
+            lookup = self.parent(index).internalPointer()
+            del lookup.rules[index.row()]
+        self.endRemoveRows()
+        return True
+
+    def addRule(self, ix, rule):
+        lookup = ix.internalPointer()
+        self.beginInsertRows(ix, ix.row(), ix.row())
+        lookup.rules.append(rule)
+        self.endInsertRows()
+        return True
 
 if __name__ == "__main__":
     from fluxproject import FluxProject
