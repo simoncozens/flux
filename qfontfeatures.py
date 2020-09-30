@@ -45,10 +45,21 @@ class QFeatureList(QTreeWidget):
         ba = event.mimeData().data('application/x-qabstractitemmodeldatalist')
         data_items = self.decodeData(ba)
         print(data_items)
-        print(data_items[0][Qt.DisplayRole].value())
+        lookupname = data_items[0][Qt.DisplayRole].value()
+        r = [lu for lu in self.editor.project.fontfeatures.routines if lu.name == lookupname]
+        if not r:
+            return
         if self.model().parent(destination).isValid():
-            destination = self.model().parent(destination)
-        print("Destination row =",destination.row())
+            parent_destination = self.model().parent(destination)
+        else:
+            key = list(self.features.items())[destination.row()][0]
+            print(key)
+            self.features[key].append(r[0])
+            print(self.features[key])
+            self.rebuild()
+            self.editor.update()
+
+
         event.acceptProposedAction()
 
     def decodeData(self, bytearray):
