@@ -2,6 +2,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QWidget, \
     QSplitter, QVBoxLayout, QAbstractItemView
 from classlist import GlyphClassList
+from lookuplist import LookupList
 
 
 class QFontFeaturesPanel(QSplitter):
@@ -10,26 +11,9 @@ class QFontFeaturesPanel(QSplitter):
         super(QFontFeaturesPanel, self).__init__()
         self.setOrientation(Qt.Vertical)
         self.lookups = {}
-        self.addWidget(self.make_class_list())
-        self.addWidget(self.make_free_routine_list())
+        self.addWidget(GlyphClassList(self.project))
+        self.addWidget(LookupList(self.project))
         self.addWidget(self.make_feature_list())
-
-    def make_class_list(self):
-        return GlyphClassList(self.project)
-
-    def make_free_routine_list(self):
-        routine_list = QTreeWidget()
-        routine_list.setHeaderLabels(["Routines"])
-        routine_list.setDragEnabled(True)
-        routine_list.setDragDropMode(QAbstractItemView.InternalMove)
-        for routine in self.project.fontfeatures.allRoutines():
-            name = routine.name or "Anonymous routine"
-            routine_item = QTreeWidgetItem([name])
-            for rule in routine.rules:
-                rule_item = QTreeWidgetItem([rule.asFea()])
-                routine_item.addChild(rule_item)
-            routine_list.addTopLevelItem(routine_item)
-        return routine_list
 
     def make_feature_list(self):
         feature_list = QTreeWidget()
