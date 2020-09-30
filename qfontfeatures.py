@@ -14,7 +14,11 @@ class QFeatureList(QTreeWidget):
         self.setAcceptDrops(True)
         self.setDragDropMode(QAbstractItemView.InternalMove)
         self.setHeaderLabels(["Features"])
-        for feature, contents in features.items():
+        self.rebuild()
+
+    def rebuild(self):
+        self.clear()
+        for feature, contents in self.features.items():
             feature_item = QTreeWidgetItem([feature])
             for routine in contents:
                 name = routine.name or "<Routine>"

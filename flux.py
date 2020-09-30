@@ -49,6 +49,9 @@ class FluxEditor(QWidget):
 
         self.setLayout(h_box)
 
+    def update(self):
+        self.shapingDebugger.shapeText()
+
     def showRuleEditor(self, rule):
         self.ruleEditor.setRule(rule)
         self.stack.setCurrentIndex(1)
