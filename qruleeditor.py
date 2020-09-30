@@ -54,9 +54,6 @@ class QValueRecordEditor(QWidget):
 class QRuleEditor(QSplitter):
     def __init__(self, project, rule):  # Rule is some fontFeatures object
         self.project = project
-        self.rule = rule
-        self.representative_string = self.makeRepresentativeString()
-        print(self.representative_string)
         self.inputslots = []
         self.precontextslots = []
         self.postcontextslots = []
@@ -65,7 +62,6 @@ class QRuleEditor(QSplitter):
         super(QRuleEditor, self).__init__()
 
         self.slotview = QHBoxLayout()
-        self.arrangeSlots()
         scroll = QScrollArea()
         scroll.setLayout(self.slotview)
 
@@ -91,8 +87,13 @@ class QRuleEditor(QSplitter):
         self.addWidget(scroll)
 
         self.addWidget(self.before_after)
+        self.setRule(rule)
+
+    def setRule(self, rule):
+        self.rule = rule
+        self.arrangeSlots()
+        self.representative_string = self.makeRepresentativeString()
         self.resetBuffer()
-        # scroll.setWidgetResizable(True)
 
     def resetBuffer(self):
         if self.rule:
@@ -214,7 +215,8 @@ class QRuleEditor(QSplitter):
                 widget.changed.connect(self.resetBuffer)
                 editingWidgets.append(widget)
             if isinstance(self.rule, Substitution):
-                widget = QLineEdit(i and i[0] or "")
+                replacements = [x[0] for x in self.rule.replacement if x]
+                widget = QLineEdit(" ".join(replacements) or "")
                 widget.position = ix
                 widget.returnPressed.connect(self.replacementChanged)
                 editingWidgets.append(widget)
@@ -273,7 +275,7 @@ class QRuleEditor(QSplitter):
         buf = Buffer(
             self.project.font, glyphs=self.representative_string, direction="RTL"
         )
-        shaper = Shaper(proj.fontfeatures, proj.font)
+        shaper = Shaper(self.project.fontfeatures, self.project.font)
         shaper.execute(buf)
         if before_after == "after" and self.rule:
             self.rule.apply_to_buffer(buf)
