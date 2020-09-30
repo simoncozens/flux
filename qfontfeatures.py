@@ -6,13 +6,14 @@ from lookuplist import LookupList
 
 
 class QFontFeaturesPanel(QSplitter):
-    def __init__(self, project):
+    def __init__(self, project, editor):
         self.project = project
+        self.editor = editor
         super(QFontFeaturesPanel, self).__init__()
         self.setOrientation(Qt.Vertical)
         self.lookups = {}
         self.addWidget(GlyphClassList(self.project))
-        self.addWidget(LookupList(self.project))
+        self.addWidget(LookupList(self.project, self))
         self.addWidget(self.make_feature_list())
 
     def make_feature_list(self):
