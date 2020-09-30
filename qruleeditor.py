@@ -10,13 +10,15 @@ from PyQt5.QtWidgets import (
     QSpinBox,
     QPushButton,
     QCheckBox,
-    QComboBox
+    QComboBox,
+    QDialog,
+    QDialogButtonBox
 )
 from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot
 from fontFeatures.shaperLib.Shaper import Shaper
 from fontFeatures.jankyPOS.Buffer import Buffer
 from qbufferrenderer import QBufferRenderer
-from fontFeatures import Positioning, ValueRecord, Substitution, Chaining
+from fontFeatures import Positioning, ValueRecord, Substitution, Chaining, Rule
 import sys
 
 
@@ -53,18 +55,24 @@ class QValueRecordEditor(QWidget):
         self.changed.emit()
 
 
-class QRuleEditor(QSplitter):
-    def __init__(self, project, rule):  # Rule is some fontFeatures object
+class QRuleEditor(QDialog):
+    def __init__(self, project, editor, rule):  # Rule is some fontFeatures object
         self.project = project
+        self.editor = editor
         self.inputslots = []
         self.precontextslots = []
         self.postcontextslots = []
         self.outputslots = []
-        self.buffer_direction = "LTR"
+        self.buffer_direction = "RTL"
         self.buffer_script = "Latin"
+        if rule:
+            self.backup_rule = Rule.fromXML(rule.toXML()) # Deep copy
+        else:
+            self.backup_rule = None
 
         super(QRuleEditor, self).__init__()
 
+        splitter = QSplitter()
         self.slotview = QHBoxLayout()
         scroll = QScrollArea()
         scroll.setLayout(self.slotview)
@@ -93,11 +101,34 @@ class QRuleEditor(QSplitter):
 
         self.before_after.setLayout(self.before_after_layout_v)
 
-        self.setOrientation(Qt.Vertical)
-        self.addWidget(scroll)
+        splitter.setOrientation(Qt.Vertical)
+        splitter.addWidget(scroll)
 
-        self.addWidget(self.before_after)
+        splitter.addWidget(self.before_after)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
+            Qt.Horizontal, self)
+        for button in buttons.buttons():
+            button.setDefault(False)
+            button.setAutoDefault(False)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        v_box_1 = QVBoxLayout()
+        self.setLayout(v_box_1)
+        v_box_1.addWidget(splitter)
+        v_box_1.addWidget(buttons)
         self.setRule(rule)
+
+    def keyPressEvent(self, evt):
+        return
+
+    def accept(self):
+        self.editor.showDebugger()
+
+    def reject(self):
+        for k in dir(self.backup_rule):
+            self.rule = getattr(self.backup_rule, k)
+        self.editor.showDebugger()
 
     def setRule(self, rule):
         self.rule = rule
@@ -107,7 +138,10 @@ class QRuleEditor(QSplitter):
 
     def resetBuffer(self):
         if self.rule:
-            self.asFea.setText(self.rule.asFea())
+            try:
+                self.asFea.setText(self.rule.asFea())
+            except Exception as e:
+                print("Can't serialize")
         self.outputview_before.set_buf(self.makeBuffer("before"))
         self.outputview_after.set_buf(self.makeBuffer("after"))
 
@@ -127,6 +161,10 @@ class QRuleEditor(QSplitter):
     def addGlyphToSlot(self):
         l = self.sender()
         glyphname = l.text()
+        # Check for class names
+        if glyphname not in self.project.font.glyphs:
+            l.setText("")
+            return
         l.contents[l.slotindex].append(glyphname)
         self.arrangeSlots()
         self.representative_string = self.makeRepresentativeString()
@@ -301,13 +339,16 @@ class QRuleEditor(QSplitter):
         # how the *real* shaping process will take place; buffer direction
         # and script, and hence choice of complex shaper, and hence from
         # that choice of features to be processed.
+        print(representative_string)
         unicodes = [self.project.font.map_glyph_to_unicode(x) for x in representative_string]
         unicodes = [x for x in unicodes if x]
         tounicodes = " ".join(map (chr, unicodes))
         print(tounicodes)
         bufferForGuessing = Buffer(self.project.font, unicodes = tounicodes)
-        self.buffer_direction = bufferForGuessing.direction
-        self.buffer_script = bufferForGuessing.script
+        # self.buffer_direction = bufferForGuessing.direction
+        # self.buffer_script = bufferForGuessing.script
+        # print("Guessed buffer direction ", self.buffer_direction)
+        # print("Guessed buffer script ", self.buffer_script)
         shaper = Shaper(self.project.fontfeatures, self.project.font)
         shaper.execute(bufferForGuessing)
         self.availableFeatures = []
@@ -335,7 +376,6 @@ class QRuleEditor(QSplitter):
         for i in range(self.featureButtonLayout.count()):
             item = self.featureButtonLayout.itemAt(i).widget()
             features.append({ "tag": item.text(), "value": item.isChecked() })
-        print(features)
         return features
 
 
@@ -346,8 +386,12 @@ class QRuleEditor(QSplitter):
         shaper = Shaper(self.project.fontfeatures, self.project.font)
 
         shaper.execute(buf,features = self.makeShaperFeatureArray())
+        print("Before", buf.serialize())
         if before_after == "after" and self.rule:
+            buf.clear_mask() # XXX
             self.rule.apply_to_buffer(buf)
+        print("after", buf.serialize())
+
         return buf
 
 

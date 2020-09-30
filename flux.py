@@ -38,7 +38,7 @@ class FluxEditor(QWidget):
         v_box_2 = QVBoxLayout()
         self.stack = QStackedWidget()
         self.shapingDebugger = QShapingDebugger(proj)
-        self.ruleEditor = QRuleEditor(proj, None)
+        self.ruleEditor = QRuleEditor(proj, self, None)
         self.stack.addWidget(self.shapingDebugger)
         self.stack.addWidget(self.ruleEditor)
         v_box_2.addWidget(self.stack)
@@ -52,6 +52,11 @@ class FluxEditor(QWidget):
     def showRuleEditor(self, rule):
         self.ruleEditor.setRule(rule)
         self.stack.setCurrentIndex(1)
+        pass
+
+
+    def showDebugger(self):
+        self.stack.setCurrentIndex(0)
         pass
 
 
