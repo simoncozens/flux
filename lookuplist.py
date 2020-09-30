@@ -10,13 +10,14 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, QAbstractItemModel, pyqtSlot
 from PyQt5.QtGui import QStandardItemModel
 import sys
-from fontFeatures import Routine
+from fontFeatures import Routine, Attachment
 from fluxproject import FluxProject
 
 class LookupList(QTreeView):
-    def __init__(self, project):
+    def __init__(self, project, parent):
         super(QTreeView, self).__init__()
         self.project = project
+        self.parent = parent
         self.setModel(LookupListModel(project))
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.setDragEnabled(True)
@@ -42,7 +43,12 @@ class LookupList(QTreeView):
         menu.exec_(self.viewport().mapToGlobal(position))
 
     def doubleClickHandler(self, index):
-        pass
+        if isinstance(index.internalPointer(), Routine):
+            pass
+        if isinstance(index.internalPointer(), Attachment):
+            # XXX
+            pass
+        self.parent.editor.showRuleEditor(index.internalPointer())
 
     @pyqtSlot()
     def deleteClass(self):
