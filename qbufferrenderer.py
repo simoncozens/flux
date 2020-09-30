@@ -1,5 +1,5 @@
 from PyQt5.QtCore import QPoint, QMargins, Qt, QRectF
-from PyQt5.QtGui import QGlyphRun, QPainter, QRawFont, QColor, QTransform, QPainterPath
+from PyQt5.QtGui import QGlyphRun, QPainter, QRawFont, QColor, QTransform, QPainterPath, QPen
 from PyQt5.QtWidgets import QWidget, QGraphicsScene, QGraphicsPathItem, QGraphicsView
 
 
@@ -24,12 +24,17 @@ class QBufferRenderer(QGraphicsView):
                 xcursor = xcursor + g.position.xAdvance
         self.setScene(self.scene)
 
+    def decomposedPaths(self, layer):
+        paths = layer.paths
+        for c in layer.components:
+            paths.extend(self.decomposedPaths(c.layer))
+        return paths
 
     def drawGlyph_glyphs(self, scene, glyph, offsetX=0, offsetY=0):
         font = self.project.font.font
         layer = font.font.glyphs[glyph].layers[font.id]
         path = QPainterPath()
-        for gsPath in layer.paths:
+        for gsPath in self.decomposedPaths(layer):
             segs = gsPath.segments
             path.moveTo(segs[0][0].x, segs[0][0].y)
             for seg in segs:
@@ -42,11 +47,15 @@ class QBufferRenderer(QGraphicsView):
 
         line = QGraphicsPathItem()
         line.setBrush( QColor(255, 255, 255) )
+        p = QPen()
+        p.setStyle(Qt.NoPen)
+        line.setPen(p)
         line.setPath(path)
         reflect = QTransform(1,0,0,-1,0,0)
         reflect.translate(offsetX, offsetY)
         line.setTransform(reflect)
         scene.addItem(line)
+        self.fitInView(self.scene.sceneRect(), Qt.KeepAspectRatio)
 
     def set_buf(self, buf):
         self.buf = buf
