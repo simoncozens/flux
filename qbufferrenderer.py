@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QWidget, QGraphicsScene, QGraphicsPathItem, QGraphic
 
 
 class QBufferRenderer(QGraphicsView):
-    def __init__(self, project, buf):
+    def __init__(self, project, buf=None):
         super(QBufferRenderer, self).__init__()
 
         self.project = project
@@ -15,8 +15,7 @@ class QBufferRenderer(QGraphicsView):
     def set_scene_from_buf(self):
         self.scene = QGraphicsScene(self)
         xcursor = 0
-        print(self.buf.serialize())
-        if len(self.buf) > 0:
+        if self.buf and len(self.buf) > 0:
             items = self.buf.items
             if self.buf.direction == "RTL":
                 items = list(reversed(items))

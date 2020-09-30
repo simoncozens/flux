@@ -69,12 +69,12 @@ class QRuleEditor(QSplitter):
         scroll = QScrollArea()
         scroll.setLayout(self.slotview)
 
-        self.outputview_before = QBufferRenderer(project, self.makeBuffer("before"))
-        self.outputview_after = QBufferRenderer(project, self.makeBuffer("after"))
+        self.outputview_before = QBufferRenderer(project)
+        self.outputview_after = QBufferRenderer(project)
         self.before_after = QWidget()
         self.before_after_layout_v = QVBoxLayout()
 
-        self.asFea = QLabel(self.rule.asFea())
+        self.asFea = QLabel()
 
         layoutarea = QWidget()
         self.before_after_layout_h = QHBoxLayout()
@@ -91,12 +91,12 @@ class QRuleEditor(QSplitter):
         self.addWidget(scroll)
 
         self.addWidget(self.before_after)
-
+        self.resetBuffer()
         # scroll.setWidgetResizable(True)
 
     def resetBuffer(self):
-        self.asFea.setText(self.rule.asFea())
-        print(self.representative_string)
+        if self.rule:
+            self.asFea.setText(self.rule.asFea())
         self.outputview_before.set_buf(self.makeBuffer("before"))
         self.outputview_after.set_buf(self.makeBuffer("after"))
 
@@ -233,7 +233,8 @@ class QRuleEditor(QSplitter):
 
     def arrangeSlots(self):
         self.clearLayout(self.slotview)
-
+        if not self.rule:
+            return
         self.slotview.addStretch()
         slotnumber = 0
         if hasattr(self.rule, "precontext"):
@@ -255,6 +256,8 @@ class QRuleEditor(QSplitter):
 
     def makeRepresentativeString(self):
         inputglyphs = []
+        if not self.rule:
+            return inputglyphs
         # "x and x[0]" thing because slots may be empty if newly added
         if hasattr(self.rule, "precontext"):
             inputglyphs.extend([x and x[0] for x in self.rule.precontext])
@@ -272,7 +275,7 @@ class QRuleEditor(QSplitter):
         )
         shaper = Shaper(proj.fontfeatures, proj.font)
         shaper.execute(buf)
-        if before_after == "after":
+        if before_after == "after" and self.rule:
             self.rule.apply_to_buffer(buf)
         return buf
 
@@ -303,7 +306,7 @@ if __name__ == "__main__":
     # )
     rule = Substitution(input_=[["space"]], replacement=[["space"]])
 
-    v_box_1.addWidget(QRuleEditor(proj, rule))
+    v_box_1.addWidget(QRuleEditor(proj, None))
 
     w.setLayout(v_box_1)
 
