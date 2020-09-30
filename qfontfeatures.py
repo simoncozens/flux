@@ -1,28 +1,20 @@
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QDataStream, QMimeData, QVariant
 from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QWidget, \
     QSplitter, QVBoxLayout, QAbstractItemView
 from classlist import GlyphClassList
 from lookuplist import LookupList
 
 
-class QFontFeaturesPanel(QSplitter):
-    def __init__(self, project, editor):
-        self.project = project
+class QFeatureList(QTreeWidget):
+    def __init__(self, editor, features):
+        super(QTreeWidget, self).__init__()
         self.editor = editor
-        super(QFontFeaturesPanel, self).__init__()
-        self.setOrientation(Qt.Vertical)
-        self.lookups = {}
-        self.addWidget(GlyphClassList(self.project))
-        self.addWidget(LookupList(self.project, self))
-        self.addWidget(self.make_feature_list())
-
-    def make_feature_list(self):
-        feature_list = QTreeWidget()
-        feature_list.setDragEnabled(True)
-        feature_list.setAcceptDrops(True)
-        # feature_list.setDragDropMode(QAbstractItemView.InternalMove)
-        feature_list.setHeaderLabels(["Features"])
-        for feature, contents in self.project.fontfeatures.features.items():
+        self.features = features
+        self.setDragEnabled(True)
+        self.setAcceptDrops(True)
+        self.setDragDropMode(QAbstractItemView.InternalMove)
+        self.setHeaderLabels(["Features"])
+        for feature, contents in features.items():
             feature_item = QTreeWidgetItem([feature])
             for routine in contents:
                 name = routine.name or "<Routine>"
@@ -34,5 +26,50 @@ class QFontFeaturesPanel(QSplitter):
                 #     rule_item.setFlags(rule_item.flags() & ~Qt.ItemIsDragEnabled)
                 #     routine_item.addChild(rule_item)
                 feature_item.addChild(routine_item)
-            feature_list.addTopLevelItem(feature_item)
-        return feature_list
+            self.addTopLevelItem(feature_item)
+
+    def dragEnterEvent(self, event):
+        # if (event.mimeData().hasFormat('application/x-routine')):
+            # print("Accepting")
+        event.accept()
+        # else:
+            # print("Ignoring")
+            # event.ignore()
+
+    def dropEvent(self, event):
+        destination = self.indexAt(event.pos())
+        ba = event.mimeData().data('application/x-qabstractitemmodeldatalist')
+        data_items = self.decodeData(ba)
+        print(data_items)
+        print(data_items[0][Qt.DisplayRole].value())
+        if self.model().parent(destination).isValid():
+            destination = self.model().parent(destination)
+        print("Destination row =",destination.row())
+        event.acceptProposedAction()
+
+    def decodeData(self, bytearray):
+        data = []
+        item = {}
+        ds = QDataStream(bytearray)
+        while not ds.atEnd():
+            row = ds.readInt32()
+            column = ds.readInt32()
+            map_items = ds.readInt32()
+            for i in range(map_items):
+                key = ds.readInt32()
+                value = QVariant()
+                ds >> value
+                item[Qt.ItemDataRole(key)] = value
+            data.append(item)
+        return data
+
+class QFontFeaturesPanel(QSplitter):
+    def __init__(self, project, editor):
+        self.project = project
+        self.editor = editor
+        super(QFontFeaturesPanel, self).__init__()
+        self.setOrientation(Qt.Vertical)
+        self.lookups = {}
+        self.addWidget(GlyphClassList(self.project))
+        self.addWidget(LookupList(self.project, self))
+        self.addWidget(QFeatureList(self.editor, self.project.fontfeatures.features))

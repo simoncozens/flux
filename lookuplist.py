@@ -7,10 +7,10 @@ from PyQt5.QtWidgets import (
     QMenu,
     QAbstractItemView
 )
-from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, QAbstractItemModel, pyqtSlot, QItemSelectionModel
-from PyQt5.QtGui import QStandardItemModel
+from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, QAbstractItemModel, pyqtSlot, QItemSelectionModel, QByteArray, QIODevice, QDataStream, QMimeData
+from PyQt5.QtGui import QStandardItemModel, QDrag
 import sys
-from fontFeatures import Routine, Attachment, Substitution, Positioning, Chaining
+from fontFeatures import Routine, Attachment, Substitution, Positioning, Chaining, ValueRecord
 from fluxproject import FluxProject
 
 class LookupList(QTreeView):
@@ -26,6 +26,12 @@ class LookupList(QTreeView):
         self.setDragDropMode(QAbstractItemView.InternalMove)
         self.customContextMenuRequested.connect(self.contextMenu)
         self.doubleClicked.connect(self.doubleClickHandler)
+
+    def startDrag(self, dropActions):
+        item = self.selectedIndexes()[0].internalPointer()
+        if not isinstance(item, Routine):
+            return
+        super(QTreeView, self).startDrag(dropActions)
 
     def contextMenu(self, position):
         indexes = self.selectedIndexes()
@@ -44,15 +50,15 @@ class LookupList(QTreeView):
 
     @pyqtSlot()
     def addSubRule(self):
-        self.model().addRule(self.selectedIndexes()[0], Substitution([],[]))
+        self.model().addRule(self.selectedIndexes()[0], Substitution([[]],[[]]))
 
     @pyqtSlot()
     def addPosRule(self):
-        self.model().addRule(self.selectedIndexes()[0], Positioning([],[]))
+        self.model().addRule(self.selectedIndexes()[0], Positioning([[]],[ValueRecord()]))
 
     @pyqtSlot()
     def addChainRule(self):
-        self.model().addRule(self.selectedIndexes()[0], Chaining([],[]))
+        self.model().addRule(self.selectedIndexes()[0], Chaining([[]],[[]]))
 
     def doubleClickHandler(self, index):
         if isinstance(index.internalPointer(), Routine):
