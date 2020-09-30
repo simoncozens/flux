@@ -44,7 +44,7 @@ class LookupList(QTreeView):
 
     def doubleClickHandler(self, index):
         if isinstance(index.internalPointer(), Routine):
-            pass
+            return
         if isinstance(index.internalPointer(), Attachment):
             # XXX
             pass
