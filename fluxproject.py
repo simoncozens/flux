@@ -99,4 +99,11 @@ class FluxProject:
                 etree.SubElement(c, "glyph").text = glyph
         return c
 
-
+    def saveFEA(self, filename):
+        try:
+            asfea = self.fontfeatures.asFea()
+            with open(filename, "w") as out:
+                out.write(asfea)
+            return None
+        except Exception as e:
+            return str(e)

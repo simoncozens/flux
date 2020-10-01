@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QPoint
 import PyQt5.QtGui as QtGui
 from PyQt5.QtWidgets import (
     QWidget,
@@ -12,7 +12,8 @@ from PyQt5.QtWidgets import (
     QMainWindow,
     QMenuBar,
     QAction,
-    QFileDialog
+    QFileDialog,
+    QToolTip
 )
 from fontFeatures.ttLib import unparse
 from fontTools.ttLib import TTFont
@@ -25,10 +26,12 @@ from qruleeditor import QRuleEditor
 from fontFeatures.feeLib import FeeParser
 from ttfontinfo import TTFontInfo
 from fluxproject import FluxProject
+from qtoaster import QToaster
 import sys
 
 
 app = QApplication(sys.argv)
+app.setApplicationName("Flux")
 
 proj = None
 if len(sys.argv) > 1:
@@ -41,7 +44,6 @@ class FluxEditor(QWidget):
         self.project = proj
         if not proj:
             self.newProject()
-        print("Setting up now")
         v_box_1 = QVBoxLayout()
         v_box_1.addWidget(QFontFeaturesPanel(self.project, self))
 
@@ -75,9 +77,18 @@ class FluxEditor(QWidget):
         saveFile.setStatusTip('Save As...')
         saveFile.triggered.connect(self.file_save_as)
 
+        exportFea = QAction("Export FEA", self)
+        exportFea.triggered.connect(self.exportFEA)
+
+        exportOtf = QAction("Export OTF", self)
+        exportOtf.triggered.connect(self.exportOTF)
+
         fileMenu = self.mainMenu.addMenu('&File')
         fileMenu.addAction(openFile)
         fileMenu.addAction(saveFile)
+        fileMenu.addSeparator()
+        fileMenu.addAction(exportFea)
+        fileMenu.addAction(exportOtf)
 
     def newProject(self):
         if self.project:
@@ -92,9 +103,25 @@ class FluxEditor(QWidget):
 
     def file_save_as(self):
         filename = QFileDialog.getSaveFileName(self, 'Save File',filter="Flux projects (*.fluxml)")
-        print(filename)
         if filename:
             self.project.save(filename[0])
+            QToaster.showMessage(self, "Saved successfully",
+                desktop=False)
+
+    def exportFEA(self):
+        filename = QFileDialog.getSaveFileName(self, 'Save File',filter="AFDKO feature file (*.fea)")
+        if not filename:
+            return
+        res = self.project.saveFEA(filename[0])
+        if res is None:
+            QToaster.showMessage(self, "Saved successfully",
+                desktop=False)
+        else:
+            QToaster.showMessage(self, "Failed to save: "+res,
+                desktop=False)
+
+    def exportOTF(self):
+        self.project.saveOTF()
 
     def update(self):
         self.shapingDebugger.shapeText()
