@@ -13,7 +13,8 @@ from PyQt5.QtWidgets import (
     QComboBox,
     QDialog,
     QDialogButtonBox,
-    QCompleter
+    QCompleter,
+    QSizePolicy
 )
 from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot, QStringListModel
 from fontFeatures.shaperLib.Shaper import Shaper
@@ -184,6 +185,14 @@ class QRuleEditor(QDialog):
         self.resetBuffer()
 
     @pyqtSlot()
+    def removeGlyphFromSlot(self):
+        l = self.sender()
+        del l.contents[l.slotindex][l.indexWithinSlot]
+        self.arrangeSlots()
+        self.representative_string = self.makeRepresentativeString()
+        self.resetBuffer()
+
+    @pyqtSlot()
     def addRemoveSlot(self):
         sender = self.sender()
         action = sender.text()
@@ -218,7 +227,10 @@ class QRuleEditor(QDialog):
         for ix, glyphslot in enumerate(contents):
             slot = QWidget()
             slotLayout = QVBoxLayout()
-            for glyph in glyphslot:
+            for ixWithinSlot, glyph in enumerate(glyphslot):
+                glyphHolder = QWidget()
+                glyphHolderLayout = QHBoxLayout()
+                glyphHolder.setLayout(glyphHolderLayout)
                 l = QPushButton(glyph)
                 l.setDefault(False)
                 l.setAutoDefault(False)
@@ -228,7 +240,17 @@ class QRuleEditor(QDialog):
                 # l.setAlignment(Qt.AlignCenter)
                 if style:
                     l.setStyleSheet(style)
-                slotLayout.addWidget(l)
+                glyphHolderLayout.addWidget(l)
+
+                remove = QPushButton("x")
+                remove.setSizePolicy(QSizePolicy.Maximum,QSizePolicy.Preferred)
+                remove.slotindex = ix
+                remove.indexWithinSlot = ixWithinSlot
+                remove.contents = contents
+                remove.clicked.connect(self.removeGlyphFromSlot)
+                glyphHolderLayout.addWidget(remove)
+
+                slotLayout.addWidget(glyphHolder)
 
             # This is the part that adds a new glyph to a slot
             newglyph = QGlyphLine(self.project.font)
@@ -278,23 +300,23 @@ class QRuleEditor(QDialog):
             c.addItem(name)
         if current in names:
             c.setCurrentIndex(names.index(current))
-        else: # XXX fontFeatures needs refactoring
+        elif current: # XXX fontFeatures needs refactoring
             c.addItem(current)
             c.setCurrentIndex(len(names))
         return c
 
     def makeEditingWidgets(self):
         editingWidgets = []
+        if isinstance(self.rule, Substitution):
+            replacements = [x[0] for x in self.rule.replacement if x]
+            widget = QLineEdit(" ".join(replacements) or "")
+            widget.position = 0
+            widget.returnPressed.connect(self.replacementChanged)
+            return [widget]
         for ix, i in enumerate(self.rule.shaper_inputs()):
             if isinstance(self.rule, Positioning):
                 widget = QValueRecordEditor(self.rule.valuerecords[ix])
                 widget.changed.connect(self.resetBuffer)
-                editingWidgets.append(widget)
-            elif isinstance(self.rule, Substitution):
-                replacements = [x[0] for x in self.rule.replacement if x]
-                widget = QLineEdit(" ".join(replacements) or "")
-                widget.position = ix
-                widget.returnPressed.connect(self.replacementChanged)
                 editingWidgets.append(widget)
             elif isinstance(self.rule, Chaining):
                 lookup = self.rule.lookups[ix] and self.rule.lookups[ix][0].name
@@ -402,11 +424,12 @@ class QRuleEditor(QDialog):
         shaper = Shaper(self.project.fontfeatures, self.project.font)
 
         shaper.execute(buf,features = self.makeShaperFeatureArray())
-        print("Before", buf.serialize())
         if before_after == "after" and self.rule:
             buf.clear_mask() # XXX
-            self.rule.apply_to_buffer(buf)
-        print("after", buf.serialize())
+            try:
+                self.rule.apply_to_buffer(buf)
+            except Exception as e:
+                print("Couldn't shape: "+str(e))
 
         return buf
 
