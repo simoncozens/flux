@@ -30,21 +30,25 @@ import sys
 
 app = QApplication(sys.argv)
 
-proj = FluxProject(sys.argv[1])
-
+proj = None
+if len(sys.argv) > 1:
+    proj = FluxProject(sys.argv[1])
 
 class FluxEditor(QWidget):
     def __init__(self, proj):
         super(QWidget, self).__init__()
         self.mainMenu = QMenuBar(self)
         self.project = proj
+        if not proj:
+            self.newProject()
+        print("Setting up now")
         v_box_1 = QVBoxLayout()
-        v_box_1.addWidget(QFontFeaturesPanel(proj, self))
+        v_box_1.addWidget(QFontFeaturesPanel(self.project, self))
 
         v_box_2 = QVBoxLayout()
         self.stack = QStackedWidget()
-        self.shapingDebugger = QShapingDebugger(proj)
-        self.ruleEditor = QRuleEditor(proj, self, None)
+        self.shapingDebugger = QShapingDebugger(self.project)
+        self.ruleEditor = QRuleEditor(self.project, self, None)
         self.stack.addWidget(self.shapingDebugger)
         self.stack.addWidget(self.ruleEditor)
         v_box_2.addWidget(self.stack)
@@ -57,16 +61,10 @@ class FluxEditor(QWidget):
         self.setupMenu()
 
     def setupMenu(self):
-
-        openEditor = QAction("&Editor", self)
-        openEditor.setShortcut("Ctrl+E")
-        openEditor.setStatusTip('Open Editor')
-        # openEditor.triggered.connect(self.editor)
-
-        openFile = QAction("&Open File", self)
-        openFile.setShortcut("Ctrl+O")
-        openFile.setStatusTip('Open File')
-        # openFile.triggered.connect(self.file_open)
+        openFile = QAction("&New Project", self)
+        openFile.setShortcut("Ctrl+N")
+        openFile.setStatusTip('New Project')
+        openFile.triggered.connect(self.newProject)
 
         saveFile = QAction("&Save File", self)
         saveFile.setShortcut("Ctrl+S")
@@ -81,6 +79,17 @@ class FluxEditor(QWidget):
         fileMenu.addAction(openFile)
         fileMenu.addAction(saveFile)
 
+    def newProject(self):
+        if self.project:
+            # Offer chance to save
+            pass
+        # Open the glyphs file
+        glyphs = QFileDialog.getOpenFileName(self, "Open Glyphs file",
+            filter="Glyphs (*.glyphs)")
+        if not glyphs:
+            return
+        self.project = FluxProject.new(glyphs[0])
+
     def file_save_as(self):
         filename = QFileDialog.getSaveFileName(self, 'Save File',filter="Flux projects (*.fluxml)")
         print(filename)
@@ -94,7 +103,6 @@ class FluxEditor(QWidget):
         self.ruleEditor.setRule(rule)
         self.stack.setCurrentIndex(1)
         pass
-
 
     def showDebugger(self):
         self.stack.setCurrentIndex(0)

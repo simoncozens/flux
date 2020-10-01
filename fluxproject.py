@@ -3,7 +3,19 @@ from fontFeatures import FontFeatures, Routine, Substitution
 from fontFeatures.fontProxy import FontProxy
 
 class FluxProject:
-    def __init__(self, file):
+
+    @classmethod
+    def new(klass, fontfile):
+        self = FluxProject()
+        self.fontfile = fontfile
+        self.font = FontProxy.opener(self.fontfile)
+        self.fontfeatures = FontFeatures()
+        self.glyphclasses = {}
+        return self
+
+    def __init__(self, file=None):
+        if not file:
+            return
         self.filename = file
         self.xml = etree.parse(file).getroot()
         self.fontfile = self.xml.find("source").get("file")
