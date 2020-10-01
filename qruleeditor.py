@@ -24,17 +24,9 @@ from fontFeatures import Positioning, ValueRecord, Substitution, Chaining, Rule
 import sys
 
 class QGlyphLine(QLineEdit):
-    def __init__(self, font):
+    def __init__(self, completer):
         super(QLineEdit, self).__init__()
-        self.font = font
-        completer = QCompleter()
         self.setCompleter(completer)
-        self.model = QStringListModel()
-        completer.setModel(self.model)
-        self.updateModel()
-
-    def updateModel(self):
-        self.model.setStringList(self.font.glyphs)
 
 class QValueRecordEditor(QWidget):
     changed = pyqtSignal()
@@ -85,6 +77,11 @@ class QRuleEditor(QDialog):
             self.backup_rule = None
 
         super(QRuleEditor, self).__init__()
+
+        self.completer = QCompleter()
+        self.model = QStringListModel()
+        self.completer.setModel(self.model)
+        self.model.setStringList(self.project.font.glyphs)
 
         splitter = QSplitter()
         self.slotview = QHBoxLayout()
@@ -253,7 +250,7 @@ class QRuleEditor(QDialog):
                 slotLayout.addWidget(glyphHolder)
 
             # This is the part that adds a new glyph to a slot
-            newglyph = QGlyphLine(self.project.font)
+            newglyph = QGlyphLine(self.completer)
             newglyph.slotindex = ix
             newglyph.contents = contents
             newglyph.returnPressed.connect(self.addGlyphToSlot)
