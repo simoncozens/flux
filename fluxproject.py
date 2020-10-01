@@ -11,6 +11,14 @@ class FluxProject:
         self.font = FontProxy.opener(self.fontfile)
         self.fontfeatures = FontFeatures()
         self.glyphclasses = {}
+
+        ## XXX Glyphs specific code here
+        for glyphclass in self.font.font.font.classes:
+            self.glyphclasses[glyphclass.name] = {
+                "type": "manual",
+                "contents": glyphclass.code.split()
+            }
+
         return self
 
     def __init__(self, file=None):
