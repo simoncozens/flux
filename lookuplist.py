@@ -58,7 +58,7 @@ class LookupList(QTreeView):
 
     @pyqtSlot()
     def addChainRule(self):
-        self.model().addRule(self.selectedIndexes()[0], Chaining([[]],[[]]))
+        self.model().addRule(self.selectedIndexes()[0], Chaining([[]],lookups= [[]]))
 
     def doubleClickHandler(self, index):
         if isinstance(index.internalPointer(), Routine):
