@@ -4,6 +4,7 @@ from fontFeatures.fontProxy import FontProxy
 
 class FluxProject:
     def __init__(self, file):
+        self.filename = file
         self.xml = etree.parse(file).getroot()
         self.fontfile = self.xml.find("source").get("file")
         self.font = FontProxy.opener(self.fontfile)
@@ -37,5 +38,45 @@ class FluxProject:
             featurename = xmlfeature.get("name")
             for r in xmlfeature:
                 self.fontfeatures.addFeature(featurename, [routines[r.get("name")]])
+
+    def save(self, filename=None):
+        if not filename:
+            filename = self.filename
+        flux = etree.Element("flux")
+        etree.SubElement(flux, "source").set("file", self.fontfile)
+        glyphclasses = etree.SubElement(flux, "glyphclasses")
+        for k,v in self.glyphclasses.items():
+            self.serializeGlyphClass(glyphclasses, k, v)
+        # Plugins
+
+        # Features
+        features = etree.SubElement(flux, "features")
+        for k,v in self.fontfeatures.features.items():
+            f = etree.SubElement(features, "feature")
+            for routine in v:
+                etree.SubElement(f, "routine").set("name", routine.name)
+        # Routines
+        routines = etree.SubElement(flux, "routines")
+        for r in self.fontfeatures.routines:
+            routines.append(r.toXML())
+        et = etree.ElementTree(flux)
+        with open(filename, "wb") as out:
+            et.write(out, pretty_print=True)
+
+
+    def serializeGlyphClass(self, element, name, value):
+        c = etree.SubElement(element, "class")
+        c.set("name", name)
+        if value["type"] == "automatic":
+            c.set("automatic", "true")
+            for pred in value["predicates"]:
+                pred_xml = etree.SubElement(c, "predicate")
+                for k, v in pred.items():
+                    pred_xml.set(k, v)
+        else:
+            c.set("automatic", "false")
+            for glyph in value["contents"]:
+                etree.SubElement(c, "glyph").text = glyph
+        return c
 
 

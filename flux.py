@@ -1,5 +1,6 @@
 import sys
 from PyQt5.QtCore import Qt
+import PyQt5.QtGui as QtGui
 from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -8,6 +9,10 @@ from PyQt5.QtWidgets import (
     QLineEdit,
     QSplitter,
     QStackedWidget,
+    QMainWindow,
+    QMenuBar,
+    QAction,
+    QFileDialog
 )
 from fontFeatures.ttLib import unparse
 from fontTools.ttLib import TTFont
@@ -31,6 +36,7 @@ proj = FluxProject(sys.argv[1])
 class FluxEditor(QWidget):
     def __init__(self, proj):
         super(QWidget, self).__init__()
+        self.mainMenu = QMenuBar(self)
         self.project = proj
         v_box_1 = QVBoxLayout()
         v_box_1.addWidget(QFontFeaturesPanel(proj, self))
@@ -48,6 +54,38 @@ class FluxEditor(QWidget):
         h_box.addLayout(v_box_2)
 
         self.setLayout(h_box)
+        self.setupMenu()
+
+    def setupMenu(self):
+
+        openEditor = QAction("&Editor", self)
+        openEditor.setShortcut("Ctrl+E")
+        openEditor.setStatusTip('Open Editor')
+        # openEditor.triggered.connect(self.editor)
+
+        openFile = QAction("&Open File", self)
+        openFile.setShortcut("Ctrl+O")
+        openFile.setStatusTip('Open File')
+        # openFile.triggered.connect(self.file_open)
+
+        saveFile = QAction("&Save File", self)
+        saveFile.setShortcut("Ctrl+S")
+        saveFile.setStatusTip('Save File')
+        # saveFile.triggered.connect(self.file_save)
+
+        saveFile = QAction("&Save As...", self)
+        saveFile.setStatusTip('Save As...')
+        saveFile.triggered.connect(self.file_save_as)
+
+        fileMenu = self.mainMenu.addMenu('&File')
+        fileMenu.addAction(openFile)
+        fileMenu.addAction(saveFile)
+
+    def file_save_as(self):
+        filename = QFileDialog.getSaveFileName(self, 'Save File',filter="Flux projects (*.fluxml)")
+        print(filename)
+        if filename:
+            self.project.save(filename[0])
 
     def update(self):
         self.shapingDebugger.shapeText()
