@@ -12,15 +12,28 @@ from PyQt5.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,
-    QDialogButtonBox
+    QDialogButtonBox,
+    QCompleter
 )
-from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot, QStringListModel
 from fontFeatures.shaperLib.Shaper import Shaper
 from fontFeatures.jankyPOS.Buffer import Buffer
 from qbufferrenderer import QBufferRenderer
 from fontFeatures import Positioning, ValueRecord, Substitution, Chaining, Rule
 import sys
 
+class QGlyphLine(QLineEdit):
+    def __init__(self, font):
+        super(QLineEdit, self).__init__()
+        self.font = font
+        completer = QCompleter()
+        self.setCompleter(completer)
+        self.model = QStringListModel()
+        completer.setModel(self.model)
+        self.updateModel()
+
+    def updateModel(self):
+        self.model.setStringList(self.font.glyphs)
 
 class QValueRecordEditor(QWidget):
     changed = pyqtSignal()
@@ -217,11 +230,14 @@ class QRuleEditor(QDialog):
                     l.setStyleSheet(style)
                 slotLayout.addWidget(l)
 
-            line = QLineEdit()
-            line.slotindex = ix
-            line.contents = contents
-            line.returnPressed.connect(self.addGlyphToSlot)
-            slotLayout.addWidget(line)
+            # This is the part that adds a new glyph to a slot
+            newglyph = QGlyphLine(self.project.font)
+            newglyph.slotindex = ix
+            newglyph.contents = contents
+            newglyph.returnPressed.connect(self.addGlyphToSlot)
+            slotLayout.addWidget(newglyph)
+
+
             slotLayout.addStretch()
             if editingWidgets:
                 slotLayout.addWidget(editingWidgets[ix])
