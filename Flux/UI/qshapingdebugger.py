@@ -1,10 +1,10 @@
-from qbufferrenderer import QBufferRenderer
+from .qbufferrenderer import QBufferRenderer
 from PyQt5.QtWidgets import (
     QSplitter,
     QLineEdit,
     QLabel
 )
-from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import Qt
 from fontFeatures.jankyPOS.Buffer import Buffer
 from fontFeatures.shaperLib.Shaper import Shaper
 

@@ -1,8 +1,8 @@
 from PyQt5.QtCore import Qt, QDataStream, QMimeData, QVariant
 from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QWidget, \
     QSplitter, QVBoxLayout, QAbstractItemView
-from classlist import GlyphClassList
-from lookuplist import LookupList
+from .classlist import GlyphClassList
+from .lookuplist import LookupList
 
 
 class QFeatureList(QTreeWidget):

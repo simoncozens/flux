@@ -1,11 +1,17 @@
-from PyQt5.QtCore import Qt, pyqtSlot, QModelIndex, QAbstractTableModel, QItemSelectionModel
-from PyQt5.QtGui import QStandardItem, QStandardItemModel
+from PyQt5.QtCore import (
+    Qt,
+    pyqtSlot,
+    QModelIndex,
+    QAbstractTableModel,
+    QItemSelectionModel,
+)
 from PyQt5.QtWidgets import QTreeView, QMenu
 import qtawesome as qta
-from glyphpredicateeditor import AutomatedGlyphClassDialog
+from .glyphpredicateeditor import AutomatedGlyphClassDialog
+
 
 class GlyphClassModel(QAbstractTableModel):
-    def __init__(self, glyphclasses = {}, parent = None):
+    def __init__(self, glyphclasses={}, parent=None):
         super(GlyphClassModel, self).__init__(parent)
         self.glyphclasses = glyphclasses
         self.order = list(sorted(self.glyphclasses.keys()))
@@ -18,10 +24,10 @@ class GlyphClassModel(QAbstractTableModel):
 
     def isAutomatic(self, index):
         name = self.order[index.row()]
-        return self.glyphclasses[name]["type"]=="automatic"
+        return self.glyphclasses[name]["type"] == "automatic"
 
     def getPredicates(self, index):
-        assert(self.isAutomatic(index))
+        assert self.isAutomatic(index)
         name = self.order[index.row()]
         if "predicates" not in self.glyphclasses[name]:
             return []
@@ -43,7 +49,7 @@ class GlyphClassModel(QAbstractTableModel):
                 return " ".join(self.glyphclasses[name]["contents"])
         if role == Qt.DecorationRole:
             if index.column() == 1 and self.isAutomatic(index):
-                return qta.icon('fa5s.cog')
+                return qta.icon("fa5s.cog")
         return None
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
@@ -64,17 +70,17 @@ class GlyphClassModel(QAbstractTableModel):
 
         if "" not in self.order:
             self.order.append("")
-            self.glyphclasses[""] = { "type": "manual", "contents" : []}
+            self.glyphclasses[""] = {"type": "manual", "contents": []}
 
         self.endInsertRows()
         return True
 
     def appendRow(self):
         self.insertRows(len(self.order))
-        return self.index(len(self.order)-1, 0)
+        return self.index(len(self.order) - 1, 0)
 
     def removeRows(self, indexes):
-        positions = [ i.row() for i in indexes if i.column() == 0 ]
+        positions = [i.row() for i in indexes if i.column() == 0]
         print(positions)
         for i in reversed(sorted(positions)):
             self.removeRow(i)
@@ -85,15 +91,15 @@ class GlyphClassModel(QAbstractTableModel):
     def removeRow(self, position, rows=1, index=QModelIndex()):
         """ Remove a row from the model. """
         self.beginRemoveRows(QModelIndex(), position, position + rows - 1)
-        assert(rows == 1)
+        assert rows == 1
         del self.glyphclasses[self.order[position]]
         print("Deleting %s" % self.order[position])
         self.endRemoveRows()
         return True
 
     def setData(self, index, value, role=Qt.EditRole):
-        """ Adjust the data (set it to <value>) depending on the given 
-            index and role. 
+        """ Adjust the data (set it to <value>) depending on the given
+            index and role.
         """
         if role != Qt.EditRole:
             return False
@@ -102,7 +108,7 @@ class GlyphClassModel(QAbstractTableModel):
             name = self.order[index.row()]
             if index.column() == 0 and name != value:
                 self.glyphclasses[value] = self.glyphclasses[name]
-                del(self.glyphclasses[name])
+                del self.glyphclasses[name]
             elif index.column() == 1:
                 self.glyphclasses[name]["contents"] = value.split(" ")
             else:
@@ -115,8 +121,8 @@ class GlyphClassModel(QAbstractTableModel):
         return False
 
     def flags(self, index):
-        """ Set the item flags at the given index. Seems like we're 
-            implementing this function just to see how it's done, as we 
+        """ Set the item flags at the given index. Seems like we're
+            implementing this function just to see how it's done, as we
             manually adjust each tableView to have NoEditTriggers.
         """
         if not index.isValid():
@@ -130,6 +136,7 @@ class GlyphClassModel(QAbstractTableModel):
             return flag
         else:
             return flag | Qt.ItemIsEditable
+
 
 class GlyphClassList(QTreeView):
     def __init__(self, project):
@@ -151,7 +158,9 @@ class GlyphClassList(QTreeView):
 
     def doubleClickHandler(self, index):
         if self.model().isAutomatic(index) and index.column() == 1:
-            AutomatedGlyphClassDialog.editDefinition(self.project,self.model().getPredicates(index))
+            AutomatedGlyphClassDialog.editDefinition(
+                self.project, self.model().getPredicates(index)
+            )
 
     @pyqtSlot()
     def deleteClass(self):
@@ -160,14 +169,10 @@ class GlyphClassList(QTreeView):
     @pyqtSlot()
     def addClass(self):
         index = self.model().appendRow()
-        self.selectionModel().select(
-            index,
-            QItemSelectionModel.ClearAndSelect)
+        self.selectionModel().select(index, QItemSelectionModel.ClearAndSelect)
 
     @pyqtSlot()
     def addComputedClass(self):
         index = self.model().appendRow()
         self.model().glyphclasses[""] = {"type": "automatic"}
-        self.selectionModel().select(
-            index,
-            QItemSelectionModel.ClearAndSelect)
+        self.selectionModel().select(index, QItemSelectionModel.ClearAndSelect)

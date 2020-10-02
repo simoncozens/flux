@@ -1,17 +1,15 @@
 from PyQt5.QtWidgets import (
     QWidget,
     QApplication,
-    QHBoxLayout,
     QVBoxLayout,
     QTreeView,
     QMenu,
     QAbstractItemView
 )
-from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, QAbstractItemModel, pyqtSlot, QItemSelectionModel, QByteArray, QIODevice, QDataStream, QMimeData
-from PyQt5.QtGui import QStandardItemModel, QDrag
+from PyQt5.QtCore import QAbstractItemModel, QItemSelectionModel, QModelIndex, Qt, pyqtSlot
 import sys
 from fontFeatures import Routine, Attachment, Substitution, Positioning, Chaining, ValueRecord
-from fluxproject import FluxProject
+from Flux.project import FluxProject
 
 class LookupList(QTreeView):
     def __init__(self, project, parent):

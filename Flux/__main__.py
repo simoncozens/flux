@@ -1,33 +1,19 @@
 import sys
-from PyQt5.QtCore import Qt, QPoint
-import PyQt5.QtGui as QtGui
 from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QApplication,
     QHBoxLayout,
-    QLineEdit,
-    QSplitter,
     QStackedWidget,
-    QMainWindow,
     QMenuBar,
     QAction,
     QFileDialog,
-    QToolTip
 )
-from fontFeatures.ttLib import unparse
-from fontTools.ttLib import TTFont
-from fontFeatures.optimizer import Optimizer
-from qfontfeatures import QFontFeaturesPanel
-from qbufferrenderer import QBufferRenderer
-from qhbshapetrace import QHBShapeTrace
-from qshapingdebugger import QShapingDebugger
-from qruleeditor import QRuleEditor
-from fontFeatures.feeLib import FeeParser
-from ttfontinfo import TTFontInfo
-from fluxproject import FluxProject
-from qtoaster import QToaster
-import sys
+from Flux.UI.qfontfeatures import QFontFeaturesPanel
+from Flux.UI.qshapingdebugger import QShapingDebugger
+from Flux.UI.qruleeditor import QRuleEditor
+from Flux.project import FluxProject
+from Flux.ThirdParty.qtoaster import QToaster
 
 
 app = QApplication(sys.argv)
@@ -36,6 +22,7 @@ app.setApplicationName("Flux")
 proj = None
 if len(sys.argv) > 1:
     proj = FluxProject(sys.argv[1])
+
 
 class FluxEditor(QWidget):
     def __init__(self, proj):
@@ -65,16 +52,16 @@ class FluxEditor(QWidget):
     def setupMenu(self):
         openFile = QAction("&New Project", self)
         openFile.setShortcut("Ctrl+N")
-        openFile.setStatusTip('New Project')
+        openFile.setStatusTip("New Project")
         openFile.triggered.connect(self.newProject)
 
         saveFile = QAction("&Save File", self)
         saveFile.setShortcut("Ctrl+S")
-        saveFile.setStatusTip('Save File')
+        saveFile.setStatusTip("Save File")
         # saveFile.triggered.connect(self.file_save)
 
         saveFile = QAction("&Save As...", self)
-        saveFile.setStatusTip('Save As...')
+        saveFile.setStatusTip("Save As...")
         saveFile.triggered.connect(self.file_save_as)
 
         exportFea = QAction("Export FEA", self)
@@ -83,7 +70,7 @@ class FluxEditor(QWidget):
         exportOtf = QAction("Export OTF", self)
         exportOtf.triggered.connect(self.exportOTF)
 
-        fileMenu = self.mainMenu.addMenu('&File')
+        fileMenu = self.mainMenu.addMenu("&File")
         fileMenu.addAction(openFile)
         fileMenu.addAction(saveFile)
         fileMenu.addSeparator()
@@ -95,30 +82,32 @@ class FluxEditor(QWidget):
             # Offer chance to save
             pass
         # Open the glyphs file
-        glyphs = QFileDialog.getOpenFileName(self, "Open Glyphs file",
-            filter="Glyphs (*.glyphs)")
+        glyphs = QFileDialog.getOpenFileName(
+            self, "Open Glyphs file", filter="Glyphs (*.glyphs)"
+        )
         if not glyphs:
             return
         self.project = FluxProject.new(glyphs[0])
 
     def file_save_as(self):
-        filename = QFileDialog.getSaveFileName(self, 'Save File',filter="Flux projects (*.fluxml)")
+        filename = QFileDialog.getSaveFileName(
+            self, "Save File", filter="Flux projects (*.fluxml)"
+        )
         if filename:
             self.project.save(filename[0])
-            QToaster.showMessage(self, "Saved successfully",
-                desktop=False)
+            QToaster.showMessage(self, "Saved successfully", desktop=False)
 
     def exportFEA(self):
-        filename = QFileDialog.getSaveFileName(self, 'Save File',filter="AFDKO feature file (*.fea)")
+        filename = QFileDialog.getSaveFileName(
+            self, "Save File", filter="AFDKO feature file (*.fea)"
+        )
         if not filename:
             return
         res = self.project.saveFEA(filename[0])
         if res is None:
-            QToaster.showMessage(self, "Saved successfully",
-                desktop=False)
+            QToaster.showMessage(self, "Saved successfully", desktop=False)
         else:
-            QToaster.showMessage(self, "Failed to save: "+res,
-                desktop=False)
+            QToaster.showMessage(self, "Failed to save: " + res, desktop=False)
 
     def exportOTF(self):
         self.project.saveOTF()
