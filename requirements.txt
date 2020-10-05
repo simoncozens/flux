@@ -1,0 +1,5 @@
+PyQt5
+qtawesome
+lxml
+git+git://github.com/simoncozens/glyphtools.git#egg=glyphtools
+git+git://github.com/simoncozens/fontfeatures.git#egg=fontfeatures
