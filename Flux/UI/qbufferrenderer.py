@@ -10,6 +10,8 @@ class QBufferRenderer(QGraphicsView):
         self.project = project
         self.buf = buf
         self.margins = QMargins(25, 25, 25, 25)
+        self.setRenderHint(QPainter.Antialiasing)
+        self.setRenderHint(QPainter.HighQualityAntialiasing)
         self.set_scene_from_buf()
 
     def set_scene_from_buf(self):
@@ -34,6 +36,7 @@ class QBufferRenderer(QGraphicsView):
         font = self.project.font.font
         layer = font.font.glyphs[glyph].layers[font.id]
         path = QPainterPath()
+        path.setFillRule(Qt.WindingFill)
         for gsPath in self.decomposedPaths(layer):
             segs = gsPath.segments
             path.moveTo(segs[0][0].x, segs[0][0].y)
