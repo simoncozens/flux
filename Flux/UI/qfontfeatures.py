@@ -1,6 +1,6 @@
 from PyQt5.QtCore import Qt, QDataStream, QMimeData, QVariant
 from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QWidget, \
-    QSplitter, QVBoxLayout, QAbstractItemView
+    QSplitter, QVBoxLayout, QAbstractItemView, QMenu
 from .classlist import GlyphClassList
 from .lookuplist import LookupList
 
@@ -10,6 +10,8 @@ class QFeatureList(QTreeWidget):
         super(QTreeWidget, self).__init__()
         self.editor = editor
         self.features = features
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.contextMenu)
         self.setDragEnabled(True)
         self.setAcceptDrops(True)
         self.setDragDropMode(QAbstractItemView.InternalMove)
@@ -20,6 +22,7 @@ class QFeatureList(QTreeWidget):
         self.clear()
         for feature, contents in self.features.items():
             feature_item = QTreeWidgetItem([feature])
+            feature_item.setFlags(feature_item.flags() | Qt.ItemIsEditable)
             for routine in contents:
                 name = routine.name or "<Routine>"
                 routine_item = QTreeWidgetItem([name])
@@ -31,6 +34,18 @@ class QFeatureList(QTreeWidget):
                 #     routine_item.addChild(rule_item)
                 feature_item.addChild(routine_item)
             self.addTopLevelItem(feature_item)
+
+    def contextMenu(self, position):
+        indexes = self.selectedIndexes()
+        menu = QMenu()
+        menu.addAction("Add feature", self.addFeature)
+        menu.exec_(self.viewport().mapToGlobal(position))
+
+    def addFeature(self):
+        feature_item = QTreeWidgetItem(["new feature"])
+        feature_item.setFlags(feature_item.flags() | Qt.ItemIsEditable)
+        self.addTopLevelItem(feature_item)
+        self.features.append("new feature")
 
     def dragEnterEvent(self, event):
         # if (event.mimeData().hasFormat('application/x-routine')):
