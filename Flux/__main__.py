@@ -14,7 +14,15 @@ from Flux.UI.qshapingdebugger import QShapingDebugger
 from Flux.UI.qruleeditor import QRuleEditor
 from Flux.project import FluxProject
 from Flux.ThirdParty.qtoaster import QToaster
+import Flux.Plugins
+import os.path, pkgutil
 
+# from Foundation import NSBundle
+# bundle = NSBundle.mainBundle()
+# if bundle:
+#     app_info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
+#     if app_info:
+#         app_info['CFBundleName'] = "Flux"
 
 app = QApplication(sys.argv)
 app.setApplicationName("Flux")
@@ -22,6 +30,17 @@ app.setApplicationName("Flux")
 proj = None
 if len(sys.argv) > 1:
     proj = FluxProject(sys.argv[1])
+
+# Load all available plugins
+pluginpath = os.path.dirname(Flux.Plugins.__file__)
+# Additional plugin path here?
+plugin_loaders = pkgutil.iter_modules([pluginpath])
+plugins = {}
+for loader, module_name, is_pkg in plugin_loaders:
+    if is_pkg:
+        continue
+    _module = loader.find_module(module_name).load_module(module_name)
+    plugins[module_name] = _module
 
 
 class FluxEditor(QWidget):
@@ -32,7 +51,8 @@ class FluxEditor(QWidget):
         if not proj:
             self.newProject()
         v_box_1 = QVBoxLayout()
-        v_box_1.addWidget(QFontFeaturesPanel(self.project, self))
+        self.fontfeaturespanel = QFontFeaturesPanel(self.project, self)
+        v_box_1.addWidget(self.fontfeaturespanel)
 
         v_box_2 = QVBoxLayout()
         self.stack = QStackedWidget()
@@ -47,9 +67,10 @@ class FluxEditor(QWidget):
         h_box.addLayout(v_box_2)
 
         self.setLayout(h_box)
-        self.setupMenu()
+        self.setupFileMenu()
+        self.setupPluginMenu()
 
-    def setupMenu(self):
+    def setupFileMenu(self):
         openFile = QAction("&New Project", self)
         openFile.setShortcut("Ctrl+N")
         openFile.setStatusTip("New Project")
@@ -76,6 +97,23 @@ class FluxEditor(QWidget):
         fileMenu.addSeparator()
         fileMenu.addAction(exportFea)
         fileMenu.addAction(exportOtf)
+
+    def setupPluginMenu(self):
+        pluginMenu = self.mainMenu.addMenu("&Plugins")
+        for plugin in plugins.values():
+            p = QAction(plugin.plugin_name, self)
+            p.triggered.connect(lambda: self.runPlugin(plugin))
+            pluginMenu.addAction(p)
+        pluginMenu.addSeparator()
+        dummy = QAction("Reload plugins", self)
+        pluginMenu.addAction(dummy)
+
+    def runPlugin(self, plugin):
+        dialog = plugin.Dialog(self.project)
+        result = dialog.exec_()
+        if result:
+            # Update everything
+            self.update()
 
     def newProject(self):
         if self.project:
