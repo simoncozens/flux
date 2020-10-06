@@ -18,6 +18,7 @@ class FluxProject:
                 "type": "manual",
                 "contents": glyphclass.code.split()
             }
+            self.fontfeatures.namedClasses[glyphclass.name] = tuple(glyphclass.code.split())
 
         return self
 
@@ -32,6 +33,7 @@ class FluxProject:
         self.xmlToFontFeatures()
 
         self.glyphclasses = {}  # Will sync to fontFeatures when building
+        # XXX will it?
 
         glyphclasses = self.xml.find("glyphclasses")
         if glyphclasses is not None:
@@ -43,6 +45,7 @@ class FluxProject:
                 else:
                     thisclass["type"] = "manual"
                     thisclass["contents"] = [g.text for g in c]
+                    self.fontfeatures.namedClasses[c.get("name")] = tuple([g.text for g in c])
 
     def _slotArray(self, el):
         return [[g.text for g in slot.findall("glyph")] for slot in list(el)]
@@ -56,6 +59,7 @@ class FluxProject:
         for xmlfeature in self.xml.find("features"):
             # Temporary until we refactor fontfeatures
             featurename = xmlfeature.get("name")
+            self.fontfeatures.features[featurename] = []
             for r in xmlfeature:
                 self.fontfeatures.addFeature(featurename, [routines[r.get("name")]])
 
