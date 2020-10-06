@@ -10,7 +10,7 @@ from fontFeatures.shaperLib.Shaper import Shaper
 
 class QShapingDebugger(QSplitter):
     def __init__(self, project):
-      self.text = "سبے"
+      self.text = ""
       self.project = project
       super(QSplitter, self).__init__()
       self.qbr = QBufferRenderer(project, None)
