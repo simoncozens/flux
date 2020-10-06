@@ -25,7 +25,7 @@ class QShapingDebugger(QSplitter):
       self.shapeText()
 
     def shapeText(self):
-      buf = Buffer(self.project.font.font, unicodes=self.text, direction="RTL")
+      buf = Buffer(self.project.font.font, unicodes=self.text)
       shaper = Shaper(self.project.fontfeatures, self.project.font)
       shaper.execute(buf)
       self.qbr.set_buf(buf)
