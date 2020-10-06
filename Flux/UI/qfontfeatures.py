@@ -88,3 +88,8 @@ class QFontFeaturesPanel(QSplitter):
         self.addWidget(GlyphClassList(self.project))
         self.addWidget(LookupList(self.project, self))
         self.addWidget(QFeatureList(self.editor, self.project.fontfeatures.features))
+
+    def update(self):
+        for i in range(0,self.count()):
+            self.widget(i).update()
+        super().update()

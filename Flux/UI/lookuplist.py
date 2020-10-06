@@ -25,6 +25,12 @@ class LookupList(QTreeView):
         self.customContextMenuRequested.connect(self.contextMenu)
         self.doubleClicked.connect(self.doubleClickHandler)
 
+    def update(self):
+        print(self.project.fontfeatures.routines)
+        self.model().beginResetModel()
+        self.model().endResetModel()
+        super().update()
+
     def startDrag(self, dropActions):
         item = self.selectedIndexes()[0].internalPointer()
         if not isinstance(item, Routine):

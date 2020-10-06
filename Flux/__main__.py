@@ -113,7 +113,9 @@ class FluxEditor(QWidget):
         self.project.saveOTF()
 
     def update(self):
+        self.fontfeaturespanel.update()
         self.shapingDebugger.shapeText()
+        super().update()
 
     def showRuleEditor(self, rule):
         self.ruleEditor.setRule(rule)
