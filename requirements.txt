@@ -2,5 +2,6 @@ PyQt5
 qtawesome
 lxml
 glyphsLib
+darkdetect
 git+git://github.com/simoncozens/glyphtools.git#egg=glyphtools
 git+git://github.com/simoncozens/fontfeatures.git#egg=fontfeatures

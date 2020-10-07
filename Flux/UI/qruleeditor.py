@@ -22,6 +22,14 @@ from fontFeatures.jankyPOS.Buffer import Buffer
 from .qbufferrenderer import QBufferRenderer
 from fontFeatures import Positioning, ValueRecord, Substitution, Chaining, Rule
 import sys
+import darkdetect
+
+if darkdetect.isDark():
+    precontext_style = "background-color: #322b2b"
+    postcontext_style = "background-color: #2b2b32"
+else:
+    precontext_style = "background-color: #ffaaaa"
+    postcontext_style = "background-color: #aaaaff"
 
 class QGlyphLine(QLineEdit):
     def __init__(self, completer):
@@ -357,7 +365,7 @@ class QRuleEditor(QDialog):
         else:
             self.slotview.addStretch()
             slotnumber = self.makeASlot(
-                slotnumber, self.rule.precontext, "background-color:#ffaaaa;"
+                slotnumber, self.rule.precontext, precontext_style
             )
 
         editingWidgets = self.makeEditingWidgets()
@@ -371,7 +379,7 @@ class QRuleEditor(QDialog):
             self.slotview.addWidget(widget)
         else:
             self.makeASlot(
-                slotnumber, self.rule.postcontext, "background-color:#aaaaff;"
+                slotnumber, self.rule.postcontext, postcontext_style
             )
 
         self.slotview.addStretch()
