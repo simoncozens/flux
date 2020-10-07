@@ -12,10 +12,12 @@ class QBufferRenderer(QGraphicsView):
         self.margins = QMargins(25, 25, 25, 25)
         self.setRenderHint(QPainter.Antialiasing)
         self.setRenderHint(QPainter.HighQualityAntialiasing)
+        self.scene = QGraphicsScene(self)
+        self.setScene(self.scene)
         self.set_scene_from_buf()
 
     def set_scene_from_buf(self):
-        self.scene = QGraphicsScene(self)
+        self.scene.clear()
         xcursor = 0
         if self.buf and len(self.buf) > 0:
             items = self.buf.items
@@ -24,7 +26,7 @@ class QBufferRenderer(QGraphicsView):
             for g in items:
                 self.drawGlyph_glyphs(self.scene, g.glyph, xcursor + (g.position.xPlacement or 0), (g.position.yPlacement or 0))
                 xcursor = xcursor + g.position.xAdvance
-        self.setScene(self.scene)
+        self.fitInView(self.scene.sceneRect(), Qt.KeepAspectRatio)
 
     def decomposedPaths(self, layer):
         paths = layer.paths
@@ -58,7 +60,6 @@ class QBufferRenderer(QGraphicsView):
         reflect.translate(offsetX, offsetY)
         line.setTransform(reflect)
         scene.addItem(line)
-        self.fitInView(self.scene.sceneRect(), Qt.KeepAspectRatio)
 
     def set_buf(self, buf):
         self.buf = buf
