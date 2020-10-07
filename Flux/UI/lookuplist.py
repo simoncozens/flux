@@ -92,6 +92,11 @@ class LookupListModel(QAbstractItemModel):
         self.project = proj
         self.lookups = proj.fontfeatures.routines
 
+    def headerData(self, section, orientation, role):
+        if role != Qt.DisplayRole:
+            return None
+        return "Lookups"
+
     def rowCount(self, index=QModelIndex()):
         if index.row() == -1:
             return len(self.lookups)
