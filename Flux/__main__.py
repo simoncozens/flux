@@ -8,7 +8,9 @@ from PyQt5.QtWidgets import (
     QMenuBar,
     QAction,
     QFileDialog,
+    QSplitter
 )
+from PyQt5.QtCore import Qt
 from Flux.UI.qfontfeatures import QFontFeaturesPanel
 from Flux.UI.qshapingdebugger import QShapingDebugger
 from Flux.UI.qruleeditor import QRuleEditor
@@ -43,30 +45,33 @@ for loader, module_name, is_pkg in plugin_loaders:
     plugins[module_name] = _module
 
 
-class FluxEditor(QWidget):
+class FluxEditor(QSplitter):
     def __init__(self, proj):
-        super(QWidget, self).__init__()
+        super(QSplitter, self).__init__()
         self.mainMenu = QMenuBar(self)
         self.project = proj
         if not proj:
             self.newProject()
-        v_box_1 = QVBoxLayout()
+        self.v_box_1 = QVBoxLayout()
         self.fontfeaturespanel = QFontFeaturesPanel(self.project, self)
-        v_box_1.addWidget(self.fontfeaturespanel)
+        self.v_box_1.addWidget(self.fontfeaturespanel)
 
-        v_box_2 = QVBoxLayout()
+        self.setOrientation(Qt.Horizontal)
+
+        self.v_box_2 = QVBoxLayout()
         self.stack = QStackedWidget()
         self.shapingDebugger = QShapingDebugger(self.project)
         self.ruleEditor = QRuleEditor(self.project, self, None)
         self.stack.addWidget(self.shapingDebugger)
         self.stack.addWidget(self.ruleEditor)
-        v_box_2.addWidget(self.stack)
+        self.v_box_2.addWidget(self.stack)
 
-        h_box = QHBoxLayout()
-        h_box.addLayout(v_box_1)
-        h_box.addLayout(v_box_2)
-
-        self.setLayout(h_box)
+        self.left = QWidget()
+        self.left.setLayout(self.v_box_1)
+        self.right = QWidget()
+        self.right.setLayout(self.v_box_2)
+        self.addWidget(self.left)
+        self.addWidget(self.right)
         self.setupFileMenu()
         self.setupPluginMenu()
 
