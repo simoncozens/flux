@@ -224,6 +224,9 @@ class QRuleEditor(QDialog):
         for ix, glyphslot in enumerate(contents):
             slot = QWidget()
             slotLayout = QVBoxLayout()
+            if style:
+                slot.setStyleSheet(style)
+
             for ixWithinSlot, glyph in enumerate(glyphslot):
                 glyphHolder = QWidget()
                 glyphHolderLayout = QHBoxLayout()
@@ -235,8 +238,8 @@ class QRuleEditor(QDialog):
                 # l.setFlat(True)
                 l.clicked.connect(self.changeRepresentativeString)
                 # l.setAlignment(Qt.AlignCenter)
-                if style:
-                    l.setStyleSheet(style)
+                # if style:
+                #     l.setStyleSheet(style)
                 glyphHolderLayout.addWidget(l)
 
                 remove = QPushButton("x")
@@ -302,6 +305,14 @@ class QRuleEditor(QDialog):
             c.setCurrentIndex(len(names))
         return c
 
+    def addPrecontext(self):
+        self.rule.precontext = [[]]
+        self.arrangeSlots()
+
+    def addPostcontext(self):
+        self.rule.postcontext = [[]]
+        self.arrangeSlots()
+
     def makeEditingWidgets(self):
         editingWidgets = []
         if isinstance(self.rule, Substitution):
@@ -309,17 +320,17 @@ class QRuleEditor(QDialog):
             widget = QLineEdit(" ".join(replacements) or "")
             widget.position = 0
             widget.returnPressed.connect(self.replacementChanged)
-            return [widget]
-        for ix, i in enumerate(self.rule.shaper_inputs()):
-            if isinstance(self.rule, Positioning):
-                widget = QValueRecordEditor(self.rule.valuerecords[ix])
-                widget.changed.connect(self.resetBuffer)
-                editingWidgets.append(widget)
-            elif isinstance(self.rule, Chaining):
-                lookup = self.rule.lookups[ix] and self.rule.lookups[ix][0].name
-                widget = self.lookupCombobox(lookup)
-                editingWidgets.append(widget)
-
+            editingWidgets.append(widget)
+        else:
+            for ix, i in enumerate(self.rule.shaper_inputs()):
+                if isinstance(self.rule, Positioning):
+                    widget = QValueRecordEditor(self.rule.valuerecords[ix])
+                    widget.changed.connect(self.resetBuffer)
+                    editingWidgets.append(widget)
+                elif isinstance(self.rule, Chaining):
+                    lookup = self.rule.lookups[ix] and self.rule.lookups[ix][0].name
+                    widget = self.lookupCombobox(lookup)
+                    editingWidgets.append(widget)
         return editingWidgets
 
     def clearLayout(self, layout):
@@ -336,9 +347,15 @@ class QRuleEditor(QDialog):
         self.clearLayout(self.slotview)
         if not self.rule:
             return
-        self.slotview.addStretch()
+
         slotnumber = 0
-        if hasattr(self.rule, "precontext"):
+
+        if not hasattr(self.rule, "precontext") or not self.rule.precontext:
+            widget = QPushButton("<<+")
+            widget.clicked.connect(self.addPrecontext)
+            self.slotview.addWidget(widget)
+        else:
+            self.slotview.addStretch()
             slotnumber = self.makeASlot(
                 slotnumber, self.rule.precontext, "background-color:#ffaaaa;"
             )
@@ -348,7 +365,11 @@ class QRuleEditor(QDialog):
             slotnumber, self.rule.shaper_inputs(), editingWidgets=editingWidgets
         )
 
-        if hasattr(self.rule, "postcontext"):
+        if not hasattr(self.rule, "postcontext") or not self.rule.postcontext:
+            widget = QPushButton("+>>")
+            widget.clicked.connect(self.addPostcontext)
+            self.slotview.addWidget(widget)
+        else:
             self.makeASlot(
                 slotnumber, self.rule.postcontext, "background-color:#aaaaff;"
             )
