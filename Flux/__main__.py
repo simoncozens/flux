@@ -165,5 +165,6 @@ class FluxEditor(QWidget):
         pass
 
 
-FluxEditor(proj).show()
+f = FluxEditor(proj)
+f.show()
 sys.exit(app.exec_())
