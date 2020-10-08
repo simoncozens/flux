@@ -12,10 +12,11 @@ class QFontFeaturesPanel(QSplitter):
         self.editor = editor
         super(QFontFeaturesPanel, self).__init__()
         self.setOrientation(Qt.Vertical)
-        self.lookups = {}
         self.addWidget(GlyphClassList(self.project))
-        self.addWidget(LookupList(self.project, self))
-        self.addWidget(FeatureList(self.project, self))
+        self.lookuplist = LookupList(self.project, self)
+        self.addWidget(self.lookuplist)
+        self.featurelist = FeatureList(self.project, self)
+        self.addWidget(self.featurelist)
 
     def update(self):
         for i in range(0,self.count()):

@@ -25,9 +25,18 @@ class LookupList(QTreeView):
         self.customContextMenuRequested.connect(self.contextMenu)
         self.doubleClicked.connect(self.doubleClickHandler)
 
+    def highlight(self, routineName):
+        self.collapseAll()
+        routineRow = [x.name for x in self.project.fontfeatures.routines].index(routineName)
+        if routineRow:
+            self.scrollTo(self.model().index(routineRow+1,0))
+            self.setCurrentIndex(self.model().index(routineRow,0))
+            self.setExpanded(self.model().index(routineRow,0),True)
+        pass
+
     def update(self):
-        print(self.project.fontfeatures.routines)
         self.model().beginResetModel()
+        self.model().dataChanged.emit(QModelIndex(), QModelIndex())
         self.model().endResetModel()
         super().update()
 

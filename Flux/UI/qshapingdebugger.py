@@ -15,8 +15,9 @@ import re
 
 
 class QShapingDebugger(QSplitter):
-    def __init__(self, project):
+    def __init__(self, editor, project):
       self.text = ""
+      self.editor = editor
       self.project = project
       super(QSplitter, self).__init__()
       self.qbr = QBufferRenderer(project, None)
@@ -85,8 +86,8 @@ class QShapingDebugger(QSplitter):
         self.messageTable.insertRow(rowPosition)
         message_item = QTableWidgetItem(msg)
         self.messageTable.setItem(rowPosition,0,message_item)
-        self.partialBuffers[rowPosition] = copy(buffer)
-        self.partialBuffers[rowPosition].items = deepcopy(buffer.items)
+        self.partialBuffers[rowPosition] = (copy(buffer), msg)
+        self.partialBuffers[rowPosition][0].items = deepcopy(buffer.items)
         buffer_item = QTableWidgetItem(ser)
         self.messageTable.setItem(rowPosition,1,buffer_item)
 
@@ -96,7 +97,15 @@ class QShapingDebugger(QSplitter):
             return
         row = indexes[0].row()
         if row in self.partialBuffers:
-            self.qbr.set_buf(self.partialBuffers[row])
+            buf, msg = self.partialBuffers[row]
+            self.qbr.set_buf(buf)
+            m = re.match(r'After (\w+) \((\w+)\)', msg)
+            if m:
+                routine, feature = m[1], m[2]
+                self.editor.fontfeaturespanel.lookuplist.highlight(routine)
+                self.editor.fontfeaturespanel.featurelist.highlight(feature, routine)
+
+
         # else:
         #     self.qbr.set_buf(self.fullBuffer)
 

@@ -25,13 +25,31 @@ class FeatureList(QTreeView):
         self.customContextMenuRequested.connect(self.contextMenu)
         self.doubleClicked.connect(self.doubleClickHandler)
 
+    def highlight(self, feature, routine=None):
+        self.collapseAll()
+        featureRow = list(self.project.fontfeatures.features.keys()).index(feature)
+        index = self.model().index(featureRow,0)
+        if featureRow:
+            self.scrollTo(self.model().index(featureRow+1,0))
+            self.setCurrentIndex(index)
+            self.setExpanded(index,True)
+        if routine:
+            routines = [x.name for x in self.project.fontfeatures.features[feature]]
+            routineRow = routines.index(routine)
+            index = self.model().index(routineRow,0,index)
+            self.scrollTo(self.model().index(featureRow+1,0))
+            self.setCurrentIndex(index)
+            self.setExpanded(index,True)
+        pass
+
     def update(self):
         self.model().beginResetModel()
         self.model().endResetModel()
         super().update()
 
     def startDrag(self, dropActions):
-        super(QTreeView, self).startDrag(dropActions)
+        print("Start drag")
+        return super(QTreeView, self).startDrag(dropActions)
 
     def contextMenu(self, position):
         indexes = self.selectedIndexes()

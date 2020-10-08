@@ -60,7 +60,7 @@ class FluxEditor(QSplitter):
 
         self.v_box_2 = QVBoxLayout()
         self.stack = QStackedWidget()
-        self.shapingDebugger = QShapingDebugger(self.project)
+        self.shapingDebugger = QShapingDebugger(self, self.project)
         self.ruleEditor = QRuleEditor(self.project, self, None)
         self.stack.addWidget(self.shapingDebugger)
         self.stack.addWidget(self.ruleEditor)
