@@ -78,6 +78,7 @@ class FluxProject:
         features = etree.SubElement(flux, "features")
         for k,v in self.fontfeatures.features.items():
             f = etree.SubElement(features, "feature")
+            f.set("name", k)
             for routine in v:
                 etree.SubElement(f, "routine").set("name", routine.name)
         # Routines
