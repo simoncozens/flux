@@ -70,7 +70,6 @@ class FeatureListModel(QAbstractItemModel):
     def __init__(self, proj, parent = None):
         super(FeatureListModel, self).__init__(parent)
         self.project = proj
-        self.features = proj.fontfeatures.features
 
     def headerData(self, section, orientation, role):
         if role != Qt.DisplayRole:
@@ -79,7 +78,7 @@ class FeatureListModel(QAbstractItemModel):
 
     def rowCount(self, index=QModelIndex()):
         if index.row() == -1:
-            return len(self.features.keys())
+            return len(self.project.fontfeatures.features.keys())
         if index.isValid():
             item = index.internalPointer()
             if isinstance(item, list):
@@ -94,9 +93,9 @@ class FeatureListModel(QAbstractItemModel):
             return QModelIndex()
         rule = index.internalPointer()
         # Now go find it
-        for row, key in enumerate(self.features.keys()):
-            if rule in self.features[key]:
-                return self.createIndex(row, 0, self.features[key])
+        for row, key in enumerate(self.project.fontfeatures.features.keys()):
+            if rule in self.project.fontfeatures.features[key]:
+                return self.createIndex(row, 0, self.project.fontfeatures.features[key])
         return QModelIndex()
 
     def index(self, row, column, index=QModelIndex()):
@@ -106,21 +105,21 @@ class FeatureListModel(QAbstractItemModel):
             return QModelIndex()
         # print(row, column, index.internalPointer())
         if not index.isValid():
-            ix = self.createIndex(row, column, list(self.features.values())[row])
+            ix = self.createIndex(row, column, list(self.project.fontfeatures.features.values())[row])
         else:
             item = index.internalPointer()
             ix = self.createIndex(row, column, item[row])
         return ix
 
     def change_key(self, old, new):
-        for _ in range(len(self.features)):
-            k, v = self.features.popitem(False)
-            self.features[new if old == k else k] = v
+        for _ in range(len(self.project.fontfeatures.features)):
+            k, v = self.project.fontfeatures.features.popitem(False)
+            self.project.fontfeatures.features[new if old == k else k] = v
 
     def setData(self, index, value, role=Qt.EditRole):
         if role != Qt.EditRole:
             return False
-        self.change_key(list(self.features.keys())[index.row()], value)
+        self.change_key(list(self.project.fontfeatures.features.keys())[index.row()], value)
         return True
 
     def indexIsRoutine(self, index):
@@ -138,39 +137,36 @@ class FeatureListModel(QAbstractItemModel):
         if role == Qt.DisplayRole or role == Qt.EditRole:
             item = index.internalPointer()
             if self.indexIsFeature(index):
-                return list(self.features.keys())[index.row()]
+                return list(self.project.fontfeatures.features.keys())[index.row()]
             else:
                 return item.name
         return None
 
     def flags(self, index):
-        """ Set the item flags at the given index. Seems like we're
-            implementing this function just to see how it's done, as we
-            manually adjust each tableView to have NoEditTriggers.
-        """
         if not index.isValid():
             return Qt.ItemIsEnabled
         flag = Qt.ItemFlags(QAbstractItemModel.flags(self, index))
         if self.indexIsFeature(index):
-            return flag | Qt.ItemIsEditable | Qt.ItemIsDragEnabled
+            flag = flag | Qt.ItemIsEditable | Qt.ItemIsDragEnabled
         return flag | Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
 
     def insertRows(self, position, item=None, rows=1, index=QModelIndex()):
         """ Insert a row into the model. """
         self.beginInsertRows(QModelIndex(), position, position + rows - 1)
-        self.features["<New Feature>"] = []
+        self.project.fontfeatures.features["<New Feature>"] = []
         self.endInsertRows()
         return True
 
     def appendRow(self):
-        self.insertRows(len(self.features.keys()))
-        return self.index(len(self.features.keys())-1, 0)
+        self.insertRows(len(self.project.fontfeatures.features.keys()))
+        return self.index(len(self.project.fontfeatures.features.keys())-1, 0)
 
     def removeRows(self, indexes):
         for i in indexes:
             self.removeRow(i)
 
     def removeRow(self, index):
+        print("Remove row called")
         """ Remove a row from the model. """
         self.beginRemoveRows(self.parent(index), index.row(), index.row())
         # if self.indexIsFeature(index):

@@ -90,7 +90,6 @@ class LookupListModel(QAbstractItemModel):
     def __init__(self, proj, parent = None):
         super(LookupListModel, self).__init__(parent)
         self.project = proj
-        self.lookups = proj.fontfeatures.routines
 
     def headerData(self, section, orientation, role):
         if role != Qt.DisplayRole:
@@ -99,7 +98,7 @@ class LookupListModel(QAbstractItemModel):
 
     def rowCount(self, index=QModelIndex()):
         if index.row() == -1:
-            return len(self.lookups)
+            return len(self.project.fontfeatures.routines)
         if index.isValid():
             item = index.internalPointer()
             if isinstance(item, Routine):
@@ -114,7 +113,7 @@ class LookupListModel(QAbstractItemModel):
             return QModelIndex()
         rule = index.internalPointer()
         # Now go find it
-        for row, routine in enumerate(self.lookups):
+        for row, routine in enumerate(self.project.fontfeatures.routines):
             if rule in routine.rules:
                 return self.createIndex(row, 0, routine)
         return QModelIndex()
@@ -126,7 +125,7 @@ class LookupListModel(QAbstractItemModel):
             return QModelIndex()
         # print(row, column, index.internalPointer())
         if not index.isValid():
-            ix = self.createIndex(row, column, self.lookups[row])
+            ix = self.createIndex(row, column, self.project.fontfeatures.routines[row])
         else:
             item = index.internalPointer()
             ix = self.createIndex(row, column, item.rules[row])
@@ -136,8 +135,8 @@ class LookupListModel(QAbstractItemModel):
         if role != Qt.EditRole:
             return False
 
-        if index.isValid() and 0 <= index.row() < len(self.lookups):
-            self.lookups[index.row()].name = value
+        if index.isValid() and 0 <= index.row() < len(self.project.fontfeatures.routines):
+            self.project.fontfeatures.routines[index.row()].name = value
             # self.dataChanged.emit(index, index)
             return True
 
@@ -180,13 +179,13 @@ class LookupListModel(QAbstractItemModel):
         """ Insert a row into the model. """
         self.beginInsertRows(QModelIndex(), position, position + rows - 1)
 
-        self.lookups.append(Routine(name="",rules=[]))
+        self.project.fontfeatures.routines.append(Routine(name="",rules=[]))
         self.endInsertRows()
         return True
 
     def appendRow(self):
-        self.insertRows(len(self.lookups))
-        return self.index(len(self.lookups)-1, 0)
+        self.insertRows(len(self.project.fontfeatures.routines))
+        return self.index(len(self.project.fontfeatures.routines)-1, 0)
 
     def removeRows(self, indexes):
         for i in indexes:
@@ -196,7 +195,7 @@ class LookupListModel(QAbstractItemModel):
         """ Remove a row from the model. """
         self.beginRemoveRows(self.parent(index), index.row(), index.row())
         if self.indexIsRoutine(index):
-            del self.lookups[index.row()]
+            del self.project.fontfeatures.routines[index.row()]
         else:
             lookup = self.parent(index).internalPointer()
             del lookup.rules[index.row()]
