@@ -1,6 +1,6 @@
 # https://stackoverflow.com/questions/59251823/is-there-an-equivalent-of-toastr-for-pyqt
 
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtWidgets, QtGui
 
 class QToaster(QtWidgets.QFrame):
     closed = QtCore.pyqtSignal()
