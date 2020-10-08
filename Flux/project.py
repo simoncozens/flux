@@ -1,6 +1,7 @@
 from lxml import etree
 from fontFeatures import FontFeatures, Routine, Substitution
 from fontFeatures.fontProxy import FontProxy
+from fontFeatures.feaLib import FeaUnparser
 
 class FluxProject:
 
@@ -111,3 +112,7 @@ class FluxProject:
             return None
         except Exception as e:
             return str(e)
+
+    def loadFEA(self, filename):
+        unparsed = FeaUnparser(open(filename,"r"))
+        self.fontfeatures = unparsed.ff

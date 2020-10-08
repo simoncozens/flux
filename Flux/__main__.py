@@ -90,6 +90,9 @@ class FluxEditor(QSplitter):
         saveFile.setStatusTip("Save As...")
         saveFile.triggered.connect(self.file_save_as)
 
+        importFea = QAction("Import FEA", self)
+        importFea.triggered.connect(self.importFEA)
+
         exportFea = QAction("Export FEA", self)
         exportFea.triggered.connect(self.exportFEA)
 
@@ -99,6 +102,8 @@ class FluxEditor(QSplitter):
         fileMenu = self.mainMenu.addMenu("&File")
         fileMenu.addAction(openFile)
         fileMenu.addAction(saveFile)
+        fileMenu.addSeparator()
+        fileMenu.addAction(importFea)
         fileMenu.addSeparator()
         fileMenu.addAction(exportFea)
         fileMenu.addAction(exportOtf)
@@ -138,7 +143,20 @@ class FluxEditor(QSplitter):
         )
         if filename:
             self.project.save(filename[0])
-            QToaster.showMessage(self, "Saved successfully", desktop=False)
+            QToaster.showMessage(self, "Saved successfully", desktop=True)
+
+    def importFEA(self):
+        filename = QFileDialog.getOpenFileName(
+            self, "Open File", filter="AFDKO feature file (*.fea)"
+        )
+        if not filename:
+            return
+        res = self.project.loadFEA(filename[0])
+        if res is None:
+            QToaster.showMessage(self, "Imported successfully", desktop=True, parentWindow=False)
+            self.update()
+        else:
+            QToaster.showMessage(self, "Failed to import: " + res, desktop=True)
 
     def exportFEA(self):
         filename = QFileDialog.getSaveFileName(
@@ -148,9 +166,9 @@ class FluxEditor(QSplitter):
             return
         res = self.project.saveFEA(filename[0])
         if res is None:
-            QToaster.showMessage(self, "Saved successfully", desktop=False)
+            QToaster.showMessage(self, "Saved successfully", desktop=True)
         else:
-            QToaster.showMessage(self, "Failed to save: " + res, desktop=False)
+            QToaster.showMessage(self, "Failed to save: " + res, desktop=True)
 
     def exportOTF(self):
         self.project.saveOTF()
