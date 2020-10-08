@@ -11,6 +11,7 @@ from PyQt5.QtCore import Qt
 from fontFeatures.jankyPOS.Buffer import Buffer
 from fontFeatures.shaperLib.Shaper import Shaper
 from copy import copy, deepcopy
+import re
 
 
 class QShapingDebugger(QSplitter):
@@ -36,6 +37,7 @@ class QShapingDebugger(QSplitter):
       self.addWidget(self.qbr)
       self.addWidget(self.messageTable)
       self.fullBuffer = None
+      self.lastBuffer = None
       self.shapeText()
 
     def shapeText(self):
@@ -43,6 +45,9 @@ class QShapingDebugger(QSplitter):
       self.messageTable.setRowCount(0)
       if not self.text:
         return
+      self.messageTable.clearSelection()
+      self.lastBuffer = None
+      self.skipped = []
       self.partialBuffers = {}
       shaper = Shaper(self.project.fontfeatures, self.project.font,
         message_function=self.addToTable
@@ -53,24 +58,47 @@ class QShapingDebugger(QSplitter):
       self.shaperOutput.setText(buf.serialize())
 
     def addToTable(self, msg, buffer=None, serialize_options=None):
+        if msg.startswith("Before"):
+            return
+        if not buffer: # Easy one
+            rowPosition = self.messageTable.rowCount()
+            self.messageTable.insertRow(rowPosition)
+            message_item = QTableWidgetItem(msg)
+            self.messageTable.setItem(rowPosition,0,message_item)
+            return
+
+        ser = buffer.serialize(additional=serialize_options)
+
+        if self.lastBuffer == ser:
+            m = re.match(r'After (\w+ \(\w+\))', msg)
+            if m:
+                self.skipped.append(m[1])
+                return
+        elif self.skipped:
+            rowPosition = self.messageTable.rowCount()
+            self.messageTable.insertRow(rowPosition)
+            message_item = QTableWidgetItem("Routines executed but had no effect: %s" % ",".join(self.skipped))
+            self.messageTable.setItem(rowPosition,0,message_item)
+            self.skipped = []
+        self.lastBuffer = ser
         rowPosition = self.messageTable.rowCount()
         self.messageTable.insertRow(rowPosition)
         message_item = QTableWidgetItem(msg)
-        if buffer:
-            self.partialBuffers[rowPosition] = copy(buffer)
-            self.partialBuffers[rowPosition].items = deepcopy(buffer.items)
-            ser = buffer.serialize(additional=serialize_options)
-            buffer_item = QTableWidgetItem(ser)
-            self.messageTable.setItem(rowPosition,1,buffer_item)
         self.messageTable.setItem(rowPosition,0,message_item)
+        self.partialBuffers[rowPosition] = copy(buffer)
+        self.partialBuffers[rowPosition].items = deepcopy(buffer.items)
+        buffer_item = QTableWidgetItem(ser)
+        self.messageTable.setItem(rowPosition,1,buffer_item)
 
     def renderPartialTrace(self):
         indexes = self.messageTable.selectedIndexes()
+        if len(indexes) != 2:
+            return
         row = indexes[0].row()
         if row in self.partialBuffers:
             self.qbr.set_buf(self.partialBuffers[row])
-        else:
-            self.qbr.set_buf(self.fullBuffer)
+        # else:
+        #     self.qbr.set_buf(self.fullBuffer)
 
     def textChanged(self, text):
       self.text = text
