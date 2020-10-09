@@ -403,16 +403,14 @@ class QRuleEditor(QDialog):
         # how the *real* shaping process will take place; buffer direction
         # and script, and hence choice of complex shaper, and hence from
         # that choice of features to be processed.
-        print(representative_string)
         unicodes = [self.project.font.map_glyph_to_unicode(x) for x in representative_string]
         unicodes = [x for x in unicodes if x]
-        tounicodes = " ".join(map (chr, unicodes))
-        print(tounicodes)
+        tounicodes = "".join(map (chr, unicodes))
         bufferForGuessing = Buffer(self.project.font, unicodes = tounicodes)
-        # self.buffer_direction = bufferForGuessing.direction
-        # self.buffer_script = bufferForGuessing.script
-        # print("Guessed buffer direction ", self.buffer_direction)
-        # print("Guessed buffer script ", self.buffer_script)
+        self.buffer_direction = bufferForGuessing.direction
+        self.buffer_script = bufferForGuessing.script
+        print("Guessed buffer direction ", self.buffer_direction)
+        print("Guessed buffer script ", self.buffer_script)
         shaper = Shaper(self.project.fontfeatures, self.project.font)
         shaper.execute(bufferForGuessing)
         self.availableFeatures = []
