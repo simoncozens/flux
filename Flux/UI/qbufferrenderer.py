@@ -31,7 +31,11 @@ class QBufferRenderer(QGraphicsView):
     def decomposedPaths(self, layer):
         paths = layer.paths
         for c in layer.components:
-            paths.extend(self.decomposedPaths(c.layer))
+            t = c.transform
+            componentPaths = self.decomposedPaths(c.layer)
+            for c in componentPaths:
+                c.applyTransform(t)
+            paths.extend(componentPaths)
         return paths
 
     def drawGlyph_glyphs(self, scene, glyph, offsetX=0, offsetY=0):
