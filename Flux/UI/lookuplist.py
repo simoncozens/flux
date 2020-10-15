@@ -178,7 +178,7 @@ class LookupListModel(QAbstractItemModel):
             manually adjust each tableView to have NoEditTriggers.
         """
         if not index.isValid():
-            return Qt.ItemIsEnabled
+            return Qt.ItemIsDropEnabled
         flag = Qt.ItemFlags(QAbstractItemModel.flags(self, index))
         if self.indexIsRoutine(index):
             return flag | Qt.ItemIsEditable | Qt.ItemIsDragEnabled
