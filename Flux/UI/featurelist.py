@@ -38,6 +38,7 @@ class FeatureList(QTreeView):
         self.setDragDropMode(QAbstractItemView.DragDrop)
         self.customContextMenuRequested.connect(self.contextMenu)
         self.doubleClicked.connect(self.doubleClickHandler)
+        self.model().dataChanged.connect(self.reshape)
 
     def highlight(self, feature, routine=None):
         self.collapseAll()
@@ -55,6 +56,9 @@ class FeatureList(QTreeView):
             self.setCurrentIndex(index)
             self.setExpanded(index, True)
         pass
+
+    def reshape(self):
+        self.parent.editor.reshape()
 
     def update(self):
         self.model().beginResetModel()
@@ -85,6 +89,26 @@ class FeatureList(QTreeView):
 
         return data
 
+    def dragEnterEvent(self, event):
+        if (
+            event.mimeData().hasFormat("application/x-qabstractitemmodeldatalist")
+            and event.source() != self
+        ):
+            self.showDropIndicator()
+            event.acceptProposedAction()
+        else:
+            return super().dragEnterEvent(event)
+
+    def dragMoveEvent(self, event):
+        if (
+            event.mimeData().hasFormat("application/x-qabstractitemmodeldatalist")
+            and event.source() != self
+        ):
+            self.showDropIndicator()
+            event.acceptProposedAction()
+        else:
+            return super().dragMoveEvent(event)
+
     def dropEvent(self, event):
         data = event.mimeData()
         if event.source() == self:
@@ -108,6 +132,7 @@ class FeatureList(QTreeView):
                 routineList = self.project.fontfeatures.features[destFeature]
                 print(f"Dropping {routineName} to end of {destFeature}")
                 self.project.fontfeatures.features[destFeature].append(routine)
+                self.model().dataChanged.emit(destination, destination)
                 self.update()
                 self.setExpanded(destination, True)
             elif self.model().indexIsRoutine(destination):
@@ -120,6 +145,7 @@ class FeatureList(QTreeView):
                 )
                 print("Destination inside parent is ", destination.row())
                 self.model().insertRows(destination.row(), 1, destParent)
+                self.model().dataChanged.emit(destination, destination)
                 self.model().setData(destination, routineName)
             else:
                 event.reject()
