@@ -4,9 +4,10 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QTreeView,
     QMenu,
-    QAbstractItemView
+    QAbstractItemView,
 )
-from PyQt5.QtCore import QAbstractItemModel, QItemSelectionModel, QModelIndex, Qt, pyqtSlot
+from PyQt5.QtCore import QAbstractItemModel, QItemSelectionModel, QModelIndex, Qt, pyqtSlot, QByteArray, QDataStream, QIODevice, QMimeData, QVariant
+from PyQt5.QtGui import QDrag
 import sys
 from fontFeatures import Routine
 from Flux.project import FluxProject
@@ -18,10 +19,11 @@ class FeatureList(QTreeView):
         self.parent = parent
         self.setModel(FeatureListModel(project))
         self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.setSelectionBehavior(self.SelectRows)
         self.setDragEnabled(True)
         self.setAcceptDrops(True)
         self.setDropIndicatorShown(True)
-        self.setDragDropMode(QAbstractItemView.InternalMove)
+        self.setDragDropMode(QAbstractItemView.DragDrop)
         self.customContextMenuRequested.connect(self.contextMenu)
         self.doubleClicked.connect(self.doubleClickHandler)
 
@@ -47,9 +49,53 @@ class FeatureList(QTreeView):
         self.model().endResetModel()
         super().update()
 
-    def startDrag(self, dropActions):
-        print("Start drag")
-        return super(QTreeView, self).startDrag(dropActions)
+    def decode_data(self, bytearray):
+
+        data = []
+        item = {}
+
+        ds = QDataStream(bytearray)
+        while not ds.atEnd():
+
+            row = ds.readInt32()
+            column = ds.readInt32()
+
+            map_items = ds.readInt32()
+            for i in range(map_items):
+
+                key = ds.readInt32()
+
+                value = QVariant()
+                ds >> value
+                item[Qt.ItemDataRole(key)] = value.value()
+
+            data.append(item)
+
+        return data
+
+    def dropEvent(self, event):
+        data = event.mimeData()
+        if event.source() == self:
+            print("Local")
+            return super(QTreeView, self).dropEvent(event)
+        print("Foreign")
+        if data.hasFormat('application/x-qabstractitemmodeldatalist'):
+            ba = data.data('application/x-qabstractitemmodeldatalist')
+            data_items = self.decode_data(ba)
+            routineName = data_items[0][0]
+            routine = ([ x for x in self.project.fontfeatures.routines if x.name == routineName])[0]
+            insertPos   = event.pos()
+            destination = self.indexAt(event.pos())
+            if self.model().indexIsFeature(destination):
+                # Easy-peasy
+                destFeature = list(self.project.fontfeatures.features.keys())[destination.row()]
+                routineList = self.project.fontfeatures.features[destFeature]
+                print(f"Dropping {routineName} to end of {destFeature}")
+                self.model().beginInsertRows(destination, len(routineList), len(routineList)+1)
+                self.setExpanded(destination, True)
+                self.project.fontfeatures.features[destFeature].append(routine)
+                self.model().endInsertRows()
+
 
     def contextMenu(self, position):
         indexes = self.selectedIndexes()
@@ -82,7 +128,7 @@ class FeatureList(QTreeView):
     @pyqtSlot()
     def deleteRoutine(self):
         # Check if routine is in use
-        self.model().removeRoutine(self.selectedIndexes())
+        self.model().removeRows(self.selectedIndexes())
 
 class FeatureListModel(QAbstractItemModel):
     def __init__(self, proj, parent = None):
@@ -162,14 +208,16 @@ class FeatureListModel(QAbstractItemModel):
 
     def flags(self, index):
         if not index.isValid():
-            return Qt.ItemIsEnabled
+            return Qt.ItemIsEnabled | Qt.ItemIsDropEnabled
         flag = Qt.ItemFlags(QAbstractItemModel.flags(self, index))
         if self.indexIsFeature(index):
             flag = flag | Qt.ItemIsEditable | Qt.ItemIsDragEnabled
-        return flag | Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
+        return flag | Qt.ItemIsDragEnabled
 
     def insertRows(self, position, item=None, rows=1, index=QModelIndex()):
         """ Insert a row into the model. """
+        if isinstance(rows, QModelIndex):
+            print(position, item, rows, index)
         self.beginInsertRows(QModelIndex(), position, position + rows - 1)
         self.project.fontfeatures.features["<New Feature>"] = []
         self.endInsertRows()
@@ -184,14 +232,15 @@ class FeatureListModel(QAbstractItemModel):
             self.removeRow(i)
 
     def removeRow(self, index):
-        print("Remove row called")
+        print("Remove row called", index)
         """ Remove a row from the model. """
         self.beginRemoveRows(self.parent(index), index.row(), index.row())
-        # if self.indexIsFeature(index):
-        #     del self.lookups[index.row()]
-        # else:
-        #     lookup = self.parent(index).internalPointer()
-        #     del lookup.rules[index.row()]
+        if self.indexIsFeature(index):
+            key = list(self.project.fontfeatures.features.keys())[index.row()]
+            del self.project.fontfeatures.features[key]
+        else:
+            routineList = self.parent(index).internalPointer()
+            del routineList[index.row()]
         self.endRemoveRows()
         return True
 
@@ -201,6 +250,9 @@ class FeatureListModel(QAbstractItemModel):
         # lookup.rules.append(rule)
         # self.endInsertRows()
         return True
+
+    def supportedDropActions(self):
+        return Qt.MoveAction | Qt.CopyAction
 
 if __name__ == "__main__":
     app = 0
