@@ -26,7 +26,7 @@ class GlyphClassPredicate(QHBoxLayout):
 
     def __init__(self, editor, arguments = {}):
         super(QHBoxLayout, self).__init__()
-        print("Initializing with ", arguments)
+        # print("Initializing with ", arguments)
         self.editor = editor
         self.project = editor.project
         self.matches = []
@@ -62,7 +62,7 @@ class GlyphClassPredicate(QHBoxLayout):
         typeIx = self.predicateType.findText(self.arguments["type"])
         if typeIx != 1:
           self.predicateType.setCurrentIndex(typeIx)
-        print(self.arguments["type"])
+        # print(self.arguments["type"])
         if self.arguments["type"] == "Name":
           self.nameCB = QComboBox()
           self.nameCB.addItems(["begins","ends","matches"])
@@ -131,12 +131,12 @@ class GlyphClassPredicate(QHBoxLayout):
         if PREDICATE_TYPES[self.arguments["type"]]["comparator"]:
           self.arguments["predicate"] = self.arguments["type"]
           self.arguments["comparator"] = self.comparator.currentText()
-        print(self.arguments)
+        # print(self.arguments)
 
     def test(self):
         a = self.arguments
         if a["type"] == "Name":
-          print(a["comparator"], a["value"])
+          # print(a["comparator"], a["value"])
           if a["comparator"] == "begins":
             self.matches = [x for x in self.allGlyphs if x.startswith(a["value"])]
           elif a["comparator"] == "ends":
@@ -154,8 +154,8 @@ class GlyphClassPredicate(QHBoxLayout):
           except Exception as e:
             print(e)
             pass
-        print(a)
-        print(self.matches)
+        # print(a)
+        # print(self.matches)
 
 class AutomatedGlyphClassDialog(QDialog):
   def __init__(self, font, predicates = []):
@@ -187,6 +187,9 @@ class AutomatedGlyphClassDialog(QDialog):
       dialog = AutomatedGlyphClassDialog(project, predicates)
       result = dialog.exec_()
       predicates = dialog.getPredicates()
+      for x in predicates:
+        x.serialize()
+      predicates = [ x.arguments for x in predicates ]
       return (predicates, result == QDialog.Accepted)
 
 class GlyphClassPredicateEditor(QVBoxLayout):

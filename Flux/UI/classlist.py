@@ -33,6 +33,10 @@ class GlyphClassModel(QAbstractTableModel):
             return []
         return self.glyphclasses[name]["predicates"]
 
+    def setPredicates(self, index, predicates):
+        name = self.order[index.row()]
+        self.glyphclasses[name]["predicates"] = predicates
+
     def data(self, index, role=Qt.DisplayRole):
         if not index.isValid():
             return None
@@ -158,9 +162,12 @@ class GlyphClassList(QTreeView):
 
     def doubleClickHandler(self, index):
         if self.model().isAutomatic(index) and index.column() == 1:
-            AutomatedGlyphClassDialog.editDefinition(
+            predicates, result = AutomatedGlyphClassDialog.editDefinition(
                 self.project, self.model().getPredicates(index)
             )
+            if result:
+                self.model().setPredicates(index, predicates)
+
 
     @pyqtSlot()
     def deleteClass(self):
@@ -170,9 +177,12 @@ class GlyphClassList(QTreeView):
     def addClass(self):
         index = self.model().appendRow()
         self.selectionModel().select(index, QItemSelectionModel.ClearAndSelect)
+        self.edit(index)
 
     @pyqtSlot()
     def addComputedClass(self):
         index = self.model().appendRow()
         self.model().glyphclasses[""] = {"type": "automatic"}
         self.selectionModel().select(index, QItemSelectionModel.ClearAndSelect)
+        self.edit(index)
+
