@@ -171,7 +171,8 @@ class QRuleEditor(QDialog):
             try:
                 self.asFea.setText(self.rule.asFea())
             except Exception as e:
-                print("Can't serialize")
+                print("Can't serialize" , e)
+                print(self.rule.shaper_inputs(), self.rule.replacement)
         self.outputview_before.set_buf(self.makeBuffer("before"))
         self.outputview_after.set_buf(self.makeBuffer("after"))
 
@@ -188,7 +189,7 @@ class QRuleEditor(QDialog):
     @pyqtSlot()
     def replacementChanged(self):
         l = self.sender()
-        self.rule.replacement[l.position] = l.text()
+        self.rule.replacement[l.position] = l.text().split()
         self.resetBuffer()
 
     @pyqtSlot()
@@ -226,7 +227,7 @@ class QRuleEditor(QDialog):
             if sender.contents == self.rule.shaper_inputs():
                 if isinstance(self.rule, Positioning):
                     self.rule.valuerecords.insert(0, ValueRecord())
-                elif isinstance(self.rule, Substitution):
+                elif isinstance(self.rule, Substitution) and len(self.rule.shaper_inputs()) == 1:
                     self.rule.replacement.insert(0, [])
                 elif isinstance(self.rule, Chaining):
                     self.rule.lookups.insert(0, [])
@@ -236,7 +237,7 @@ class QRuleEditor(QDialog):
             if sender.contents == self.rule.shaper_inputs():
                 if isinstance(self.rule, Positioning):
                     self.rule.valuerecords.append(ValueRecord())
-                elif isinstance(self.rule, Substitution):
+                elif isinstance(self.rule, Substitution) and len(self.rule.shaper_inputs()) == 1:
                     self.rule.replacement.append([])
                 elif isinstance(self.rule, Chaining):
                     self.rule.lookups.append([])
@@ -248,7 +249,7 @@ class QRuleEditor(QDialog):
         self.resetBuffer()
 
     def makeASlot(self, slotnumber, contents, style=None, editingWidgets=None):
-        print("editing widgets", editingWidgets)
+        print(f'slot number {slotnumber} editing widgets', editingWidgets)
         for ix, glyphslot in enumerate(contents):
             slot = QWidget()
             slotLayout = QVBoxLayout()
@@ -289,7 +290,7 @@ class QRuleEditor(QDialog):
 
 
             slotLayout.addStretch()
-            if editingWidgets and ix in editingWidgets:
+            if editingWidgets and ix < len(editingWidgets):
                 slotLayout.addWidget(editingWidgets[ix])
 
             pushbuttonsArea = QWidget()

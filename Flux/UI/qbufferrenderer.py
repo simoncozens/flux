@@ -43,6 +43,9 @@ class QBufferRenderer(QGraphicsView):
 
     def drawGlyph_glyphs(self, scene, glyph, offsetX=0, offsetY=0):
         font = self.project.font.font
+        if not glyph in font.font.glyphs:
+            print("No glyph "+glyph)
+            return
         layer = font.font.glyphs[glyph].layers[font.id]
         path = QPainterPath()
         path.setFillRule(Qt.WindingFill)
