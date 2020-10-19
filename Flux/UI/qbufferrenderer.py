@@ -1,6 +1,7 @@
 from PyQt5.QtCore import QPoint, QMargins, Qt, QRectF
 from PyQt5.QtGui import QGlyphRun, QPainter, QRawFont, QColor, QTransform, QPainterPath, QPen
 from PyQt5.QtWidgets import QWidget, QGraphicsScene, QGraphicsPathItem, QGraphicsView
+import glyphsLib
 
 
 class QBufferRenderer(QGraphicsView):
@@ -34,8 +35,10 @@ class QBufferRenderer(QGraphicsView):
             t = c.transform
             componentPaths = self.decomposedPaths(c.layer)
             for c in componentPaths:
-                c.applyTransform(t)
-            paths.extend(componentPaths)
+                g = glyphsLib.GSPath()
+                g.nodes = [glyphsLib.GSNode((n.position.x, n.position.y), n.type) for n in c.nodes]
+                g.applyTransform(t)
+                paths.append(g)
         return paths
 
     def drawGlyph_glyphs(self, scene, glyph, offsetX=0, offsetY=0):
