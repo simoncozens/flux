@@ -4,6 +4,7 @@ from PyQt5.QtCore import (
     QModelIndex,
     QAbstractTableModel,
     QItemSelectionModel,
+    QMimeData
 )
 from PyQt5.QtWidgets import QTreeView, QMenu
 import qtawesome as qta
@@ -55,6 +56,13 @@ class GlyphClassModel(QAbstractTableModel):
             if index.column() == 1 and self.isAutomatic(index):
                 return qta.icon("fa5s.cog")
         return None
+
+
+    def mimeData(self, indexes):
+        mimedata = QMimeData()
+        name = self.order[indexes[0].row()]
+        mimedata.setText("@"+name)
+        return mimedata
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
         """ Set the headers to be displayed. """
@@ -132,6 +140,7 @@ class GlyphClassModel(QAbstractTableModel):
         if not index.isValid():
             return Qt.ItemIsEnabled
         flag = Qt.ItemFlags(QAbstractTableModel.flags(self, index))
+        flag = flag | Qt.ItemIsDragEnabled
         if index.column() == 0:
             return flag | Qt.ItemIsEditable
 
@@ -148,6 +157,7 @@ class GlyphClassList(QTreeView):
         self.project = project
         self.setModel(GlyphClassModel(project.glyphclasses))
         self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.setDragEnabled(True)
         self.customContextMenuRequested.connect(self.contextMenu)
         self.doubleClicked.connect(self.doubleClickHandler)
 

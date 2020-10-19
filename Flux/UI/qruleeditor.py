@@ -35,6 +35,17 @@ class QGlyphLine(QLineEdit):
     def __init__(self, completer):
         super(QLineEdit, self).__init__()
         self.setCompleter(completer)
+        self.setAcceptDrops(True)
+
+    def dropEvent(self, event):
+        data = event.mimeData()
+        if not data.hasText() or not data.text().startswith("@"):
+            event.reject()
+            return
+        self.setText(data.text())
+        self.returnPressed.emit()
+
+
 
 class QValueRecordEditor(QWidget):
     changed = pyqtSignal()
@@ -167,7 +178,11 @@ class QRuleEditor(QDialog):
     @pyqtSlot()
     def changeRepresentativeString(self):
         l = self.sender()
-        self.representative_string[l.slotnumber] = l.text()
+        if l.text().startswith("@"):
+            self.representative_string[l.slotnumber] = self.project.fontfeatures.namedClasses[l.text()[1:]][0]
+        else:
+            self.representative_string[l.slotnumber] = l.text()
+
         self.resetBuffer()
 
     @pyqtSlot()
@@ -181,7 +196,11 @@ class QRuleEditor(QDialog):
         l = self.sender()
         glyphname = l.text()
         # Check for class names
-        if glyphname not in self.project.font.glyphs:
+        if glyphname.startswith("@") and glyphname[1:] in self.project.fontfeatures.namedClasses.keys():
+            # It's OK
+            pass
+        elif glyphname not in self.project.font.glyphs:
+            print(f'{glyphname} not found')
             l.setText("")
             return
         l.contents[l.slotindex].append(glyphname)
@@ -229,6 +248,7 @@ class QRuleEditor(QDialog):
         self.resetBuffer()
 
     def makeASlot(self, slotnumber, contents, style=None, editingWidgets=None):
+        print("editing widgets", editingWidgets)
         for ix, glyphslot in enumerate(contents):
             slot = QWidget()
             slotLayout = QVBoxLayout()
@@ -269,7 +289,7 @@ class QRuleEditor(QDialog):
 
 
             slotLayout.addStretch()
-            if editingWidgets:
+            if editingWidgets and ix in editingWidgets:
                 slotLayout.addWidget(editingWidgets[ix])
 
             pushbuttonsArea = QWidget()
@@ -398,6 +418,9 @@ class QRuleEditor(QDialog):
             inputglyphs.extend([x and x[0] for x in self.rule.postcontext])
 
         representative_string = [x for x in inputglyphs if x]
+        for ix, g in enumerate(representative_string):
+            if g.startswith("@") and g[1:] in self.project.fontfeatures.namedClasses.keys():
+                representative_string[ix] = self.project.fontfeatures.namedClasses[g[1:]][0]
 
         # We use this representative string to guess information about
         # how the *real* shaping process will take place; buffer direction
@@ -409,8 +432,8 @@ class QRuleEditor(QDialog):
         bufferForGuessing = Buffer(self.project.font, unicodes = tounicodes)
         self.buffer_direction = bufferForGuessing.direction
         self.buffer_script = bufferForGuessing.script
-        print("Guessed buffer direction ", self.buffer_direction)
-        print("Guessed buffer script ", self.buffer_script)
+        # print("Guessed buffer direction ", self.buffer_direction)
+        # print("Guessed buffer script ", self.buffer_script)
         shaper = Shaper(self.project.fontfeatures, self.project.font)
         shaper.execute(bufferForGuessing)
         self.availableFeatures = []
