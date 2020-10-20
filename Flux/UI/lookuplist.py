@@ -35,9 +35,12 @@ class LookupList(QTreeView):
         pass
 
     def update(self, index=QModelIndex()):
-        self.model().beginResetModel()
-        self.model().dataChanged.emit(index, index)
-        self.model().endResetModel()
+        if index.isValid():
+            self.model().dataChanged.emit(index, index)
+        else:
+            self.model().beginResetModel()
+            self.model().dataChanged.emit(index, index)
+            self.model().endResetModel()
         super().update()
 
     def startDrag(self, dropActions):
