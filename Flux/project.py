@@ -20,7 +20,8 @@ class FluxProject:
                 "contents": glyphclass.code.split()
             }
             self.fontfeatures.namedClasses[glyphclass.name] = tuple(glyphclass.code.split())
-
+        # Load up the anchors too
+        self._glyphs_load_anchors()
         return self
 
     def __init__(self, file=None):
@@ -47,6 +48,19 @@ class FluxProject:
                     thisclass["type"] = "manual"
                     thisclass["contents"] = [g.text for g in c]
                     self.fontfeatures.namedClasses[c.get("name")] = tuple([g.text for g in c])
+
+        # The font file is the authoritative source of the anchors, so load them
+        # from the font file on load, in case they have changed.
+        self._glyphs_load_anchors()
+
+    def _glyphs_load_anchors(self):
+        gsmaster = self.font.font
+        for g in self.font.glyphs:
+            layer = gsmaster.font.glyphs[g].layers[gsmaster.id]
+            for a in layer.anchors:
+                if not a.name in self.fontfeatures.anchors:
+                    self.fontfeatures.anchors[a.name] = {}
+                self.fontfeatures.anchors[a.name][g] = (a.position.x, a.position.y)
 
     def _slotArray(self, el):
         return [[g.text for g in slot.findall("glyph")] for slot in list(el)]

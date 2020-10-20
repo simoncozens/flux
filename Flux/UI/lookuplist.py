@@ -55,7 +55,7 @@ class LookupList(QTreeView):
                 menu.addAction("Delete routine", self.deleteItem)
                 menu.addAction("Add substitution rule", self.addSubRule)
                 menu.addAction("Add positioning rule", self.addPosRule)
-                # menu.addAction("Add attachment rule", self.addAttRule)
+                menu.addAction("Add attachment rule", self.addAttRule)
                 menu.addAction("Add chaining rule", self.addChainRule)
             else:
                 menu.addAction("Delete rule", self.deleteItem)
@@ -73,12 +73,16 @@ class LookupList(QTreeView):
     def addChainRule(self):
         self.model().addRule(self.selectedIndexes()[0], Chaining([[]],lookups= [[]]))
 
+    @pyqtSlot()
+    def addAttRule(self):
+        self.model().addRule(self.selectedIndexes()[0], Attachment("", ""))
+
     def doubleClickHandler(self, index):
         if isinstance(index.internalPointer(), Routine):
             return
         if isinstance(index.internalPointer(), Attachment):
-            # XXX
-            pass
+            self.parent.editor.showAttachmentEditor(index.internalPointer())
+            return
         self.parent.editor.showRuleEditor(index.internalPointer())
 
     @pyqtSlot()
@@ -167,6 +171,8 @@ class LookupListModel(QAbstractItemModel):
             item = index.internalPointer()
             if self.indexIsRoutine(index):
                 return item.name
+            elif isinstance(item, Attachment):
+                return f'Attach {item.mark_name or "Nothing"} to {item.base_name or "Nothing"}'
             else:
                 fea = item.asFea() or "<New %s Rule>" % item.__class__.__name__
                 return fea.split("\n")[0]

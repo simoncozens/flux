@@ -25,11 +25,17 @@ class QBufferRenderer(QGraphicsView):
             if self.buf.direction == "RTL":
                 items = list(reversed(items))
             for g in items:
-                self.drawGlyph_glyphs(self.scene, g.glyph, xcursor + (g.position.xPlacement or 0), (g.position.yPlacement or 0))
-                xcursor = xcursor + g.position.xAdvance
+                color = (255,255,255)
+                if hasattr(g, "color"):
+                    color = g.color
+                self.drawGlyph_glyphs(self.scene, g, xcursor + (g.position.xPlacement or 0), (g.position.yPlacement or 0), color)
+                if hasattr(g, "anchor"):
+                    self.drawCross(self.scene, g.anchor[0], g.anchor[1], color)
+                else:
+                    xcursor = xcursor + g.position.xAdvance
         self.fitInView(self.scene.sceneRect(), Qt.KeepAspectRatio)
 
-    def decomposedPaths(self, layer):
+    def decomposedPaths(self, layer, item=None):
         paths = layer.paths
         for c in layer.components:
             t = c.transform
@@ -37,11 +43,28 @@ class QBufferRenderer(QGraphicsView):
             for c in componentPaths:
                 g = glyphsLib.GSPath()
                 g.nodes = [glyphsLib.GSNode((n.position.x, n.position.y), n.type) for n in c.nodes]
-                g.applyTransform(t)
+                if not item or not hasattr(item, "anchor"):
+                    g.applyTransform(t)
                 paths.append(g)
         return paths
 
-    def drawGlyph_glyphs(self, scene, glyph, offsetX=0, offsetY=0):
+    def drawCross(self, scene, x, y, color):
+        path = QPainterPath()
+        path.moveTo(x-50, y)
+        path.lineTo(x+50, y)
+        path.moveTo(x, y-50)
+        path.lineTo(x, y+50)
+        line = QGraphicsPathItem()
+        p = QPen( QColor(*color) )
+        p.setWidth(5)
+        line.setPen(p )
+        line.setPath(path)
+        reflect = QTransform(1,0,0,-1,0,0)
+        line.setTransform(reflect)
+        scene.addItem(line)
+
+    def drawGlyph_glyphs(self, scene, item, offsetX=0, offsetY=0, color=(255,255,255)):
+        glyph = item.glyph
         font = self.project.font.font
         if not glyph in font.font.glyphs:
             print("No glyph "+glyph)
@@ -49,7 +72,7 @@ class QBufferRenderer(QGraphicsView):
         layer = font.font.glyphs[glyph].layers[font.id]
         path = QPainterPath()
         path.setFillRule(Qt.WindingFill)
-        for gsPath in self.decomposedPaths(layer):
+        for gsPath in self.decomposedPaths(layer, item):
             segs = gsPath.segments
             path.moveTo(segs[0][0].x, segs[0][0].y)
             for seg in segs:
@@ -61,7 +84,7 @@ class QBufferRenderer(QGraphicsView):
                     path.lineTo(*flattuples)
 
         line = QGraphicsPathItem()
-        line.setBrush( QColor(255, 255, 255) )
+        line.setBrush( QColor(*color) )
         p = QPen()
         p.setStyle(Qt.NoPen)
         line.setPen(p)

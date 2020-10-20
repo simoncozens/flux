@@ -53,7 +53,10 @@ class QShapingDebugger(QSplitter):
       shaper = Shaper(self.project.fontfeatures, self.project.font,
         message_function=self.addToTable
         )
-      shaper.execute(buf)
+      try:
+          shaper.execute(buf)
+      except Exception as e:
+          print("Shaping exception: ", e)
       self.qbr.set_buf(buf)
       self.fullBuffer = buf
       self.shaperOutput.setText(buf.serialize())

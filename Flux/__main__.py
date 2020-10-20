@@ -14,6 +14,7 @@ from PyQt5.QtCore import Qt
 from Flux.UI.qfontfeatures import QFontFeaturesPanel
 from Flux.UI.qshapingdebugger import QShapingDebugger
 from Flux.UI.qruleeditor import QRuleEditor
+from Flux.UI.qattachmenteditor import QAttachmentEditor
 from Flux.project import FluxProject
 from Flux.ThirdParty.qtoaster import QToaster
 import Flux.Plugins
@@ -62,8 +63,10 @@ class FluxEditor(QSplitter):
         self.stack = QStackedWidget()
         self.shapingDebugger = QShapingDebugger(self, self.project)
         self.ruleEditor = QRuleEditor(self.project, self, None)
+        self.attachmentEditor = QAttachmentEditor(self.project, self, None)
         self.stack.addWidget(self.shapingDebugger)
         self.stack.addWidget(self.ruleEditor)
+        self.stack.addWidget(self.attachmentEditor)
         self.v_box_2.addWidget(self.stack)
 
         self.left = QWidget()
@@ -184,6 +187,11 @@ class FluxEditor(QSplitter):
     def showRuleEditor(self, rule):
         self.ruleEditor.setRule(rule)
         self.stack.setCurrentIndex(1)
+        pass
+
+    def showAttachmentEditor(self, rule):
+        self.attachmentEditor.setRule(rule)
+        self.stack.setCurrentIndex(2)
         pass
 
     def showDebugger(self):

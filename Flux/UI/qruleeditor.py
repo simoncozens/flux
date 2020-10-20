@@ -153,11 +153,13 @@ class QRuleEditor(QDialog):
         return
 
     def accept(self):
+        self.editor.fontfeaturespanel.lookuplist.update()
         self.editor.showDebugger()
 
     def reject(self):
         for k in dir(self.backup_rule):
             self.rule = getattr(self.backup_rule, k)
+        self.editor.fontfeaturespanel.lookuplist.update()
         self.editor.showDebugger()
 
     def setRule(self, rule):
@@ -172,7 +174,6 @@ class QRuleEditor(QDialog):
                 self.asFea.setText(self.rule.asFea())
             except Exception as e:
                 print("Can't serialize" , e)
-                print(self.rule.shaper_inputs(), self.rule.replacement)
         self.outputview_before.set_buf(self.makeBuffer("before"))
         self.outputview_after.set_buf(self.makeBuffer("after"))
 
@@ -189,7 +190,8 @@ class QRuleEditor(QDialog):
     @pyqtSlot()
     def replacementChanged(self):
         l = self.sender()
-        self.rule.replacement[l.position] = l.text().split()
+        replacements = l.text().split()
+        self.rule.replacement = [ [x] for x in replacements ]
         self.resetBuffer()
 
     @pyqtSlot()
@@ -466,19 +468,21 @@ class QRuleEditor(QDialog):
 
 
     def makeBuffer(self, before_after="before"):
+        print(self.representative_string)
         buf = Buffer(
             self.project.font, glyphs=self.representative_string, direction=self.buffer_direction
         )
         shaper = Shaper(self.project.fontfeatures, self.project.font)
 
         shaper.execute(buf,features = self.makeShaperFeatureArray())
+        print(before_after)
         if before_after == "after" and self.rule:
             buf.clear_mask() # XXX
             try:
                 self.rule.apply_to_buffer(buf)
             except Exception as e:
                 print("Couldn't shape: "+str(e))
-
+        print(buf.serialize())
         return buf
 
 
