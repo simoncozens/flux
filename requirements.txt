@@ -3,5 +3,6 @@ qtawesome
 lxml
 glyphsLib
 darkdetect
-git+git://github.com/simoncozens/glyphtools@with-fixes#egg=glyphtools
+git+git://github.com/simoncozens/glyphsLib@with-fixes#egg=glyphsLib
+git+git://github.com/simoncozens/glyphtools#egg=glyphtools
 git+git://github.com/simoncozens/fontfeatures.git#egg=fontfeatures
