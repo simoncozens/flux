@@ -45,6 +45,10 @@ class QShapingDebugger(QSplitter):
       buf = Buffer(self.project.font.font, unicodes=self.text)
       self.messageTable.setRowCount(0)
       if not self.text:
+        buf.clear_mask()
+        self.qbr.set_buf(buf)
+        self.fullBuffer = buf
+        self.shaperOutput.setText(buf.serialize())
         return
       self.messageTable.clearSelection()
       self.lastBuffer = None
