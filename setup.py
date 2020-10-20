@@ -10,6 +10,7 @@ from setuptools import setup
 APP = ['flux.py']
 DATA_FILES = []
 OPTIONS = {
+'iconfile': 'flux.icns',
 'packages': ['ometa', 'terml', 'fontFeatures'],
 'excludes': ['PyQt5.QtDesigner', 'PyQt5.QtNetwork', 'PyQt5.QtOpenGL', 'PyQt5.QtScript', 'PyQt5.QtSql', 'PyQt5.QtTest', 'PyQt5.QtWebKit', 'PyQt5.QtXml', 'PyQt5.phonon', 'PyQt5.QtWebEngine'],
 # 'plist': {
