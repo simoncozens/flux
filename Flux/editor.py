@@ -19,7 +19,7 @@ from Flux.UI.qattachmenteditor import QAttachmentEditor
 from Flux.project import FluxProject
 from Flux.ThirdParty.qtoaster import QToaster
 import Flux.Plugins
-import os.path, pkgutil
+import os.path, pkgutil, sys
 
 class FluxEditor(QSplitter):
     def __init__(self, proj):
@@ -28,7 +28,7 @@ class FluxEditor(QSplitter):
         self.project = proj
         self.loadPlugins()
         if not proj:
-            self.newProject()
+            self.openFluxOrGlyphs()
         self.v_box_1 = QVBoxLayout()
         self.fontfeaturespanel = QFontFeaturesPanel(self.project, self)
         self.v_box_1.addWidget(self.fontfeaturespanel)
@@ -77,7 +77,7 @@ class FluxEditor(QSplitter):
         self.saveFile.setShortcut("Ctrl+S")
         self.saveFile.setStatusTip("Save")
         self.saveFile.triggered.connect(self.file_save)
-        if not self.project.filename:
+        if not hasattr(self.project, "filename"):
             self.saveFile.setEnabled(False)
 
         saveAsFile = QAction("&Save As...", self)
@@ -121,7 +121,7 @@ class FluxEditor(QSplitter):
             self.update()
 
     def newProject(self):
-        if self.project:
+        if self.project and self.isWindowModified():
             # Offer chance to save
             pass
         # Open the glyphs file
@@ -131,6 +131,19 @@ class FluxEditor(QSplitter):
         if not glyphs:
             return
         self.project = FluxProject.new(glyphs[0])
+
+    def openFluxOrGlyphs(self):
+        filename = QFileDialog.getOpenFileName(
+            self, "Open Flux/Glyphs file", filter="Flux or Glyphs (*.glyphs *.fluxml)"
+        )
+        if not filename:
+            if not self.project:
+                sys.exit(0)
+            return
+        if filename[0].endswith(".glyphs"):
+            self.project = FluxProject.new(filename[0])
+        else:
+            self.project = FluxProject(filename[0])
 
     def file_save_as(self):
         filename = QFileDialog.getSaveFileName(
