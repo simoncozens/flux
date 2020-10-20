@@ -441,6 +441,7 @@ class QRuleEditor(QDialog):
         # print("Guessed buffer direction ", self.buffer_direction)
         # print("Guessed buffer script ", self.buffer_script)
         shaper = Shaper(self.project.fontfeatures, self.project.font)
+        bufferForGuessing = Buffer(self.project.font, glyphs = representative_string)
         shaper.execute(bufferForGuessing)
         self.availableFeatures = []
         for stage in shaper.stages:
