@@ -211,10 +211,10 @@ class FluxEditor(QSplitter):
         pass
 
     def closeEvent(self, event):
-        if not self.windowModified():
+        if not self.isWindowModified():
             event.accept()
             return
-        quit_msg = "You have unsaved changed. Are you sure you want to exit the program?"
+        quit_msg = "You have unsaved changes. Are you sure you want to exit the program?"
         reply = QMessageBox.question(self, 'Message',
                          quit_msg, QMessageBox.Yes, QMessageBox.No)
 
