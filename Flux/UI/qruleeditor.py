@@ -90,6 +90,7 @@ class QRuleEditor(QDialog):
         self.outputslots = []
         self.buffer_direction = "RTL"
         self.buffer_script = "Latin"
+        self.index = None
         if rule:
             self.backup_rule = Rule.fromXML(rule.toXML()) # Deep copy
         else:
@@ -153,7 +154,8 @@ class QRuleEditor(QDialog):
         return
 
     def accept(self):
-        self.editor.fontfeaturespanel.lookuplist.update()
+        self.editor.fontfeaturespanel.lookuplist.update(self.index)
+        self.editor.setWindowModified(True)
         self.editor.showDebugger()
 
     def reject(self):
@@ -162,8 +164,9 @@ class QRuleEditor(QDialog):
         self.editor.fontfeaturespanel.lookuplist.update()
         self.editor.showDebugger()
 
-    def setRule(self, rule):
+    def setRule(self, rule, index=None):
         self.rule = rule
+        self.index = index
         self.arrangeSlots()
         self.representative_string = self.makeRepresentativeString()
         self.resetBuffer()

@@ -8,7 +8,8 @@ from PyQt5.QtWidgets import (
     QMenuBar,
     QAction,
     QFileDialog,
-    QSplitter
+    QSplitter,
+    QMessageBox
 )
 from PyQt5.QtCore import Qt
 from Flux.UI.qfontfeatures import QFontFeaturesPanel
@@ -84,14 +85,16 @@ class FluxEditor(QSplitter):
         openFile.setStatusTip("New Project")
         openFile.triggered.connect(self.newProject)
 
-        saveFile = QAction("&Save File", self)
-        saveFile.setShortcut("Ctrl+S")
-        saveFile.setStatusTip("Save File")
-        # saveFile.triggered.connect(self.file_save)
+        self.saveFile = QAction("&Save", self)
+        self.saveFile.setShortcut("Ctrl+S")
+        self.saveFile.setStatusTip("Save")
+        self.saveFile.triggered.connect(self.file_save)
+        if not self.project.filename:
+            self.saveFile.setEnabled(False)
 
-        saveFile = QAction("&Save As...", self)
-        saveFile.setStatusTip("Save As...")
-        saveFile.triggered.connect(self.file_save_as)
+        saveAsFile = QAction("&Save As...", self)
+        saveAsFile.setStatusTip("Save As...")
+        saveAsFile.triggered.connect(self.file_save_as)
 
         importFea = QAction("Import FEA", self)
         importFea.triggered.connect(self.importFEA)
@@ -104,7 +107,8 @@ class FluxEditor(QSplitter):
 
         fileMenu = self.mainMenu.addMenu("&File")
         fileMenu.addAction(openFile)
-        fileMenu.addAction(saveFile)
+        fileMenu.addAction(self.saveFile)
+        fileMenu.addAction(saveAsFile)
         fileMenu.addSeparator()
         fileMenu.addAction(importFea)
         fileMenu.addSeparator()
@@ -147,6 +151,14 @@ class FluxEditor(QSplitter):
         if filename:
             self.project.save(filename[0])
             QToaster.showMessage(self, "Saved successfully", desktop=True)
+            self.project.filename = filename
+            self.saveFile.setEnabled(True)
+            self.setWindowModified(False)
+
+    def file_save(self):
+        self.project.save(self.project.filename)
+        QToaster.showMessage(self, "Saved successfully", desktop=True)
+        self.setWindowModified(False)
 
     def importFEA(self):
         filename = QFileDialog.getOpenFileName(
@@ -184,13 +196,13 @@ class FluxEditor(QSplitter):
     def reshape(self):
         self.shapingDebugger.shapeText()
 
-    def showRuleEditor(self, rule):
-        self.ruleEditor.setRule(rule)
+    def showRuleEditor(self, rule, index=None):
+        self.ruleEditor.setRule(rule, index)
         self.stack.setCurrentIndex(1)
         pass
 
-    def showAttachmentEditor(self, rule):
-        self.attachmentEditor.setRule(rule)
+    def showAttachmentEditor(self, rule, index=None):
+        self.attachmentEditor.setRule(rule, index)
         self.stack.setCurrentIndex(2)
         pass
 
@@ -198,6 +210,18 @@ class FluxEditor(QSplitter):
         self.stack.setCurrentIndex(0)
         pass
 
+    def closeEvent(self, event):
+        if not self.windowModified():
+            event.accept()
+            return
+        quit_msg = "You have unsaved changed. Are you sure you want to exit the program?"
+        reply = QMessageBox.question(self, 'Message',
+                         quit_msg, QMessageBox.Yes, QMessageBox.No)
+
+        if reply == QMessageBox.Yes:
+            event.accept()
+        else:
+            event.ignore()
 
 f = FluxEditor(proj)
 f.show()

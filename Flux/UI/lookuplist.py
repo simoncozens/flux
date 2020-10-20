@@ -34,9 +34,9 @@ class LookupList(QTreeView):
             self.setExpanded(self.model().index(routineRow,0),True)
         pass
 
-    def update(self):
+    def update(self, index=QModelIndex()):
         self.model().beginResetModel()
-        self.model().dataChanged.emit(QModelIndex(), QModelIndex())
+        self.model().dataChanged.emit(index, index)
         self.model().endResetModel()
         super().update()
 
@@ -64,26 +64,30 @@ class LookupList(QTreeView):
     @pyqtSlot()
     def addSubRule(self):
         self.model().addRule(self.selectedIndexes()[0], Substitution([[]],[[]]))
+        self.parent.editor.setWindowModified(True)
 
     @pyqtSlot()
     def addPosRule(self):
         self.model().addRule(self.selectedIndexes()[0], Positioning([[]],[ValueRecord()]))
+        self.parent.editor.setWindowModified(True)
 
     @pyqtSlot()
     def addChainRule(self):
         self.model().addRule(self.selectedIndexes()[0], Chaining([[]],lookups= [[]]))
+        self.parent.editor.setWindowModified(True)
 
     @pyqtSlot()
     def addAttRule(self):
         self.model().addRule(self.selectedIndexes()[0], Attachment("", ""))
+        self.parent.editor.setWindowModified(True)
 
     def doubleClickHandler(self, index):
         if isinstance(index.internalPointer(), Routine):
             return
         if isinstance(index.internalPointer(), Attachment):
-            self.parent.editor.showAttachmentEditor(index.internalPointer())
+            self.parent.editor.showAttachmentEditor(index.internalPointer(), index=index)
             return
-        self.parent.editor.showRuleEditor(index.internalPointer())
+        self.parent.editor.showRuleEditor(index.internalPointer(), index=index)
 
     @pyqtSlot()
     def addRoutine(self):
@@ -93,11 +97,13 @@ class LookupList(QTreeView):
             QItemSelectionModel.ClearAndSelect
         )
         self.edit(index)
+        self.parent.editor.setWindowModified(True)
 
     @pyqtSlot()
     def deleteItem(self):
         # Check if routine is in use
         self.model().removeRows(self.selectedIndexes())
+        self.parent.editor.setWindowModified(True)
 
 class LookupListModel(QAbstractItemModel):
     def __init__(self, proj, parent = None):

@@ -135,6 +135,7 @@ class FeatureList(QTreeView):
                 self.model().dataChanged.emit(destination, destination)
                 self.update()
                 self.setExpanded(destination, True)
+                self.parent.editor.setWindowModified(True)
             elif self.model().indexIsRoutine(destination):
                 destParent = self.model().parent(destination)
                 print(
@@ -147,6 +148,7 @@ class FeatureList(QTreeView):
                 self.model().insertRows(destination.row(), 1, destParent)
                 self.model().dataChanged.emit(destination, destination)
                 self.model().setData(destination, routineName)
+                self.parent.editor.setWindowModified(True)
             else:
                 event.reject()
                 return
@@ -170,17 +172,20 @@ class FeatureList(QTreeView):
     def addFeature(self):
         index = self.model().appendRow()
         self.selectionModel().select(index, QItemSelectionModel.ClearAndSelect)
+        self.parent.editor.setWindowModified(True)
         self.edit(index)
 
     @pyqtSlot()
     def deleteItem(self):
         # Check if routine is in use
         self.model().removeRowWithIndex(self.selectedIndexes()[0])
+        self.parent.editor.setWindowModified(True)
 
     @pyqtSlot()
     def deleteRoutine(self):
         # Check if routine is in use
         self.model().removeRowWithIndex(self.selectedIndexes()[0])
+        self.parent.editor.setWindowModified(True)
 
 
 class FeatureListModel(QAbstractItemModel):
