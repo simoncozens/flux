@@ -8,6 +8,10 @@ jobs:
     runs-on: macOS-latest
     steps:
     - uses: actions/checkout@v2
+    - uses: apple-actions/import-codesign-certs@v1
+      with:
+        p12-file-base64: ${{ secrets.CERTIFICATES_P12 }}
+        p12-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
     - name: Set up Python 3.8
       uses: actions/setup-python@v2
       with:
@@ -22,4 +26,7 @@ jobs:
       run: |
         rm -rf dist/flux.app/Contents/Resources/lib/python3.8/PyQt5/Qt/lib/Qt{WebEngine,Designer,Quick}*
         rm -rf dist/Flux.app/Contents/Resources/lib/python3.8/PyQt5/Qt/qml/
-
+    - name: Codesign package
+      run: |
+        codesign -s "Developer ID Application: Simon Cozens (GHYRZM4TBD)" -v --deep --timestamp --entitlements entitlements.plist -o runtime `find dist/Flux.app -name '*.so' -or -name '*.dylib'` `find . -type f | grep 'framework/Versions/5/'`
+        codesign -s "Developer ID Application: Simon Cozens (GHYRZM4TBD)" -v --deep --timestamp --entitlements entitlements.plist -o runtime dist/Flux.app
