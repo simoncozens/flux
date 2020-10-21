@@ -21,6 +21,7 @@ python3 flux.py
 ## Building an app on OS X
 
 * Ensure that fontFeatures is installed unpacked (i.e. not as an egg)
+* Ensure that lxml.etree is built from source and installed
 * Clone `py2app` and hack it as per https://github.com/ronaldoussoren/py2app/issues/271#issuecomment-609078700
 * python3 setup.py py2app
 * rm -rf dist/flux.app/Contents/Resources/lib/python3.8/PyQt5/Qt/lib/Qt{WebEngine,Designer,Quick}*
