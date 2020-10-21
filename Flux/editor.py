@@ -133,6 +133,14 @@ class FluxEditor(QSplitter):
         self.project = FluxProject.new(glyphs[0])
 
     def openFluxOrGlyphs(self):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+
+        msg.setText("Please open a .glyphs file or .fluxml file to get started")
+        msg.setWindowTitle("Flux")
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec_()
+
         filename = QFileDialog.getOpenFileName(
             self, "Open Flux/Glyphs file", filter="Flux or Glyphs (*.glyphs *.fluxml)"
         )
