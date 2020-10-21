@@ -13,9 +13,17 @@ OPTIONS = {
 'iconfile': 'flux.icns',
 'packages': ['ometa', 'terml', 'fontFeatures'],
 'excludes': ['PyQt5.QtDesigner', 'PyQt5.QtNetwork', 'PyQt5.QtOpenGL', 'PyQt5.QtScript', 'PyQt5.QtSql', 'PyQt5.QtTest', 'PyQt5.QtWebKit', 'PyQt5.QtXml', 'PyQt5.phonon', 'PyQt5.QtWebEngine'],
-# 'plist': {
-#         'NSRequiresAquaSystemAppearance': False
-#     }
+'plist': {
+        'CFBundleIdentifier': 'uk.co.corvelsoftware.Flux',
+        'UTExportedTypeDeclarations': [{
+            'UTTypeIdentifier': 'uk.co.corvelsoftware.Flux',
+            'UTTypeTagSpecification': {
+                'public.filename-extension': [ 'fluxml' ],
+            },
+            'UTTypeDescription': 'Flux Project File',
+            'UTTypeConformsTo': [ 'public.xml' ]
+        }]
+    }
 }
 
 setup(
