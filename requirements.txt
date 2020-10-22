@@ -1,5 +1,4 @@
 PyQt5==5.15.0
-qtawesome
 lxml
 glyphsLib
 darkdetect

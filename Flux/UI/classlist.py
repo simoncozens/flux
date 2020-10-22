@@ -7,7 +7,6 @@ from PyQt5.QtCore import (
     QMimeData
 )
 from PyQt5.QtWidgets import QTreeView, QMenu
-import qtawesome as qta
 from .glyphpredicateeditor import AutomatedGlyphClassDialog
 
 
@@ -54,7 +53,7 @@ class GlyphClassModel(QAbstractTableModel):
                 return " ".join(self.glyphclasses[name]["contents"])
         if role == Qt.DecorationRole:
             if index.column() == 1 and self.isAutomatic(index):
-                return qta.icon("fa5s.cog")
+                return "<computed>"
         return None
 
 
