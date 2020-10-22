@@ -3,6 +3,8 @@ import sys, os
 if "RESOURCEPATH" in os.environ:
     sys.path = [os.path.join(os.environ['RESOURCEPATH'], 'lib', 'python3.8', 'lib-dynload')] + sys.path
 
+import Flux.ucd
+
 from Flux.project import FluxProject
 from Flux.editor import FluxEditor
 from PyQt5.QtWidgets import QApplication
