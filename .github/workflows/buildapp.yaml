@@ -12,6 +12,10 @@ jobs:
       with:
         p12-file-base64: ${{ secrets.CERTIFICATES_P12 }}
         p12-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
+    - name: Set up gon
+      run: |
+        brew tap mitchellh/gon
+        brew install mitchellh/gon/gon
     - name: Set up Python 3.8
       uses: actions/setup-python@v2
       with:
@@ -24,9 +28,31 @@ jobs:
       run: python3 setup.py py2app
     - name: Thin package
       run: |
-        rm -rf dist/flux.app/Contents/Resources/lib/python3.8/PyQt5/Qt/lib/Qt{WebEngine,Designer,Quick}*
+        rm -rf dist/Flux.app/Contents/Resources/lib/python3.8/PyQt5/Qt/lib/Qt{WebEngine,Designer,Quick}*
         rm -rf dist/Flux.app/Contents/Resources/lib/python3.8/PyQt5/Qt/qml/
     - name: Codesign package
       run: |
         codesign -s "Developer ID Application: Simon Cozens (GHYRZM4TBD)" -v --deep --timestamp --entitlements entitlements.plist -o runtime `find dist/Flux.app -name '*.so' -or -name '*.dylib'` `find . -type f | grep 'framework/Versions/5/'` || true
         codesign -s "Developer ID Application: Simon Cozens (GHYRZM4TBD)" -v --deep --timestamp --entitlements entitlements.plist -o runtime dist/Flux.app
+    - name: Package app
+      run: |
+        ditto -c -k --keepParent "dist/Flux.app" dist/Flux.zip
+    - name: Notarize app
+      run: |
+        gon gon.json
+      env:
+        AC_PASSWORD: ${{ secrets.NOTARIZE_PASSWORD }}
+        AC_PROVIDER: ${{ secrets.NOTARIZE_PROVIDER }}
+    - name: Staple app
+      run: |
+        xcrun stapler staple dist/Flux.app
+        xcrun stapler validate dist/Flux.app
+    - name: Repackage stapled app
+      run: |
+        rm -rf dist/Flux.zip
+        ditto -c -k --keepParent "dist/Flux.app" dist/Flux.zip
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: application
+        path: dist/Flux.zip

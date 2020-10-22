@@ -1,0 +1,12 @@
+{
+  "notarize": [{
+    "path": "dist/Flux.zip",
+    "bundle_id": "uk.co.corvelsoftware.flux",
+    "staple": false
+  }],
+
+  "apple_id": {
+     "username": "simon@simon-cozens.org"
+  }
+}
+
