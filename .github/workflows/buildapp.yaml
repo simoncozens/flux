@@ -22,7 +22,7 @@ jobs:
         python-version: 3.8
     - name: Rebuild lxml from source
       run: |
-        pip install --no-binary lxml
+        pip install --no-binary :all: lxml
       env:
         STATIC_DEPS: "true"
     - name: Install dependencies
