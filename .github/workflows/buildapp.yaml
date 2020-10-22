@@ -22,7 +22,7 @@ jobs:
         python-version: 3.8
     - name: Rebuild lxml from source
       run: |
-        pip install lxml
+        pip install lxml --no-binary
       env:
         STATIC_DEPS: "true"
     - name: Install dependencies
@@ -38,6 +38,7 @@ jobs:
     - name: Codesign package
       run: |
         codesign -s "Developer ID Application: Simon Cozens (GHYRZM4TBD)" -v --deep --timestamp --entitlements entitlements.plist -o runtime `find dist/Flux.app -name '*.so' -or -name '*.dylib' -or -name '*.framework'` || true
+        codesign -s "Developer ID Application: Simon Cozens (GHYRZM4TBD)" -v --deep --timestamp --entitlements entitlements.plist -o runtime `find dist/Flux.app -type f | grep 'framework/Versions/5/'` || true
         codesign -s "Developer ID Application: Simon Cozens (GHYRZM4TBD)" -v --deep --timestamp --entitlements entitlements.plist -o runtime dist/Flux.app
     - name: Package app
       run: |
