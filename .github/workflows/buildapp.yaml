@@ -20,6 +20,11 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: 3.8
+    - name: Rebuild lxml from source
+      run: |
+        pip install lxml
+      env:
+        STATIC_DEPS: "true"
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -32,7 +37,7 @@ jobs:
         rm -rf dist/Flux.app/Contents/Resources/lib/python3.8/PyQt5/Qt/qml/
     - name: Codesign package
       run: |
-        codesign -s "Developer ID Application: Simon Cozens (GHYRZM4TBD)" -v --deep --timestamp --entitlements entitlements.plist -o runtime `find dist/Flux.app -name '*.so' -or -name '*.dylib'` `find . -type f | grep 'framework/Versions/5/'` || true
+        codesign -s "Developer ID Application: Simon Cozens (GHYRZM4TBD)" -v --deep --timestamp --entitlements entitlements.plist -o runtime `find dist/Flux.app -name '*.so' -or -name '*.dylib' -or -name '*.framework'` || true
         codesign -s "Developer ID Application: Simon Cozens (GHYRZM4TBD)" -v --deep --timestamp --entitlements entitlements.plist -o runtime dist/Flux.app
     - name: Package app
       run: |
