@@ -4,12 +4,55 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QTreeView,
     QMenu,
-    QAbstractItemView
+    QAbstractItemView,
+    QCheckBox,
+    QDialog,
+    QDialogButtonBox
 )
 from PyQt5.QtCore import QAbstractItemModel, QItemSelectionModel, QModelIndex, Qt, pyqtSlot
 import sys
 from fontFeatures import Routine, Attachment, Substitution, Positioning, Chaining, ValueRecord
 from Flux.project import FluxProject
+
+class LookupFlagEditor(QDialog):
+
+  simpleChecks = [
+    (0x02, "Ignore Base Glyphs"),
+    (0x08, "Ignore Mark Glyphs"),
+    (0x04, "Ignore Ligatures"),
+    (0x01, "Cursive last glyph on baseline"),
+  ]
+
+  def __init__(self, routine):
+    super(QDialog, self).__init__()
+    self.checkboxes = []
+    self.routine = routine
+    self.flags = routine.flags
+    layout = QVBoxLayout()
+    for flagbit, description in self.simpleChecks:
+        cb = QCheckBox(description)
+        cb.flagbit = flagbit
+        cb.stateChanged.connect(self.toggleBit)
+        if routine.flags & flagbit:
+            cb.setCheckState(Qt.Checked)
+        layout.addWidget(cb)
+
+    buttons = QDialogButtonBox(
+        QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
+        Qt.Horizontal, self)
+    buttons.accepted.connect(self.accept)
+    buttons.rejected.connect(self.reject)
+    layout.addWidget(buttons)
+    self.setLayout(layout)
+
+  @pyqtSlot()
+  def toggleBit(self):
+    cb = self.sender()
+    self.flags = self.flags ^ cb.flagbit
+
+  def accept(self):
+    self.routine.flags = self.flags
+    super().accept()
 
 class LookupList(QTreeView):
     def __init__(self, project, parent):
@@ -60,6 +103,7 @@ class LookupList(QTreeView):
                 menu.addAction("Add positioning rule", self.addPosRule)
                 menu.addAction("Add attachment rule", self.addAttRule)
                 menu.addAction("Add chaining rule", self.addChainRule)
+                menu.addAction("Set routine flags", self.setFlags)
             else:
                 menu.addAction("Delete rule", self.deleteItem)
         menu.exec_(self.viewport().mapToGlobal(position))
@@ -83,6 +127,16 @@ class LookupList(QTreeView):
     def addAttRule(self):
         self.model().addRule(self.selectedIndexes()[0], Attachment("", ""))
         self.parent.editor.setWindowModified(True)
+
+    @pyqtSlot()
+    def setFlags(self):
+        index = self.selectedIndexes()[0]
+        routine = index.internalPointer()
+        dialog = LookupFlagEditor(routine)
+        result = dialog.exec_()
+        if result:
+            self.model().dataChanged.emit(index, index)
+            self.parent.editor.setWindowModified(True)
 
     def doubleClickHandler(self, index):
         if isinstance(index.internalPointer(), Routine):
@@ -172,6 +226,22 @@ class LookupListModel(QAbstractItemModel):
         item = index.internalPointer()
         return not isinstance(item, Routine)
 
+    def describeFlags(self, routine):
+        flags = []
+        if not routine.flags:
+            return ""
+        if routine.flags & 0x2:
+            flags.append("IgnoreBase")
+        if routine.flags & 0x8:
+            flags.append("IgnoreMark")
+        if routine.flags & 0x4:
+            flags.append("IgnoreLig")
+        if routine.flags & 0x1:
+            flags.append("RightToLeft")
+        if len(flags):
+            return " (" + ",".join(flags) + ")"
+        return ""
+
     def data(self, index, role=Qt.DisplayRole):
         # print("Getting index ", index.row(), index.column(), index.internalPointer())
         if not index.isValid():
@@ -179,9 +249,9 @@ class LookupListModel(QAbstractItemModel):
         if role == Qt.DisplayRole or role == Qt.EditRole:
             item = index.internalPointer()
             if self.indexIsRoutine(index):
-                return item.name
+                return item.name + self.describeFlags(item)
             elif isinstance(item, Attachment):
-                return f'Attach {item.mark_name or "Nothing"} to {item.base_name or "Nothing"}'
+                return f'Attach {item.mark_name or "Nothing"} to {item.base_name or "Nothing"}' + self.describeFlags(item)
             else:
                 fea = item.asFea() or "<New %s Rule>" % item.__class__.__name__
                 return fea.split("\n")[0]
