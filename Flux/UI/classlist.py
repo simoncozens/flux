@@ -4,9 +4,10 @@ from PyQt5.QtCore import (
     QModelIndex,
     QAbstractTableModel,
     QItemSelectionModel,
-    QMimeData
+    QMimeData,
+    QRect
 )
-from PyQt5.QtWidgets import QTreeView, QMenu, QStyledItemDelegate
+from PyQt5.QtWidgets import QTreeView, QMenu, QStyledItemDelegate, QLineEdit
 from .glyphpredicateeditor import AutomatedGlyphClassDialog
 from .qglyphname import QGlyphName
 
@@ -21,8 +22,24 @@ class GlyphNameDelegate(QStyledItemDelegate):
         if self.model.isAutomatic(index):
             return super().createEditor(parent, option, index)
         editor = QGlyphName(self.project, multiple = True, allow_classes = True)
+        editor.setParent(parent)
+        editor.setAttribute(Qt.WA_TranslucentBackground, False)
+        editor.setAttribute(Qt.WA_OpaquePaintEvent, True)
+        editor.layout.setContentsMargins(0,0,0,0)
+        # editor = QLineEdit(parent)
         return editor
 
+    def updateEditorGeometry(self, editor, option, index):
+        r = QRect(option.rect)
+        if editor.windowFlags() & Qt.Popup and editor.parent() is not None:
+            r.setTopLeft(editor.parent().mapToGlobal(r.topLeft()))
+        sizeHint = editor.sizeHint()
+
+        if (r.width()<sizeHint.width()): r.setWidth(sizeHint.width())
+        if (r.height()<sizeHint.height()): r.setHeight(sizeHint.height())
+        # Warning, this is gross.
+        r.setTop(r.top() - 9)
+        editor.setGeometry(r)
     def setEditorData(self, editor, index):
         editor.setText(index.data())
 
@@ -70,6 +87,7 @@ class GlyphClassModel(QAbstractTableModel):
                 return name
             elif index.column() == 1 and not self.isAutomatic(index):
                 return " ".join(self.glyphclasses[name]["contents"])
+        if role == Qt.DecorationRole:
             if index.column() == 1 and self.isAutomatic(index):
                 return "<computed>"
         return None

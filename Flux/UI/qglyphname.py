@@ -168,7 +168,7 @@ class MultiCompleter(QCompleter):
 
     # Add texts instead of replace
     def pathFromIndex(self, index):
-        path = QtWidgets.QCompleter.pathFromIndex(self, index)
+        path = QCompleter.pathFromIndex(self, index)
 
         lst = str(self.widget().text()).split(' ')
 
@@ -185,11 +185,11 @@ class MultiCompleter(QCompleter):
 class QGlyphName(QWidget):
     changed = pyqtSignal()
 
-    def __init__(self, project, multiple = False, allow_classes = False):
+    def __init__(self, project, multiple = False, allow_classes = False, parent=None):
         self.project = project
         self.multiple = multiple
         self.allow_classes = allow_classes
-        super(QGlyphName, self).__init__()
+        super(QGlyphName, self).__init__(parent)
         self.layout = QHBoxLayout()
         self.setLayout(self.layout)
 
@@ -259,14 +259,10 @@ if __name__ == "__main__":
 
     w = QWidget()
     w.resize(510, 210)
-    v_box_1 = QVBoxLayout()
 
     proj = FluxProject("qalam.fluxml")
-    proj.fontfeatures.features["mark"] = [proj.fontfeatures.routines[2]]
-    proj.fontfeatures.features["curs"] = [proj.fontfeatures.routines[1]]
-    v_box_1.addWidget(QGlyphName(proj))
-
-    w.setLayout(v_box_1)
+    foo = QGlyphName(proj)
+    foo.setParent(w)
 
     w.show()
     sys.exit(app.exec_())
