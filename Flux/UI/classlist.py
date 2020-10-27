@@ -6,9 +6,28 @@ from PyQt5.QtCore import (
     QItemSelectionModel,
     QMimeData
 )
-from PyQt5.QtWidgets import QTreeView, QMenu
+from PyQt5.QtWidgets import QTreeView, QMenu, QStyledItemDelegate
 from .glyphpredicateeditor import AutomatedGlyphClassDialog
+from .qglyphname import QGlyphName
 
+class GlyphNameDelegate(QStyledItemDelegate):
+    def __init__(self, tree):
+        super().__init__()
+        self.project = tree.project
+        self.model = tree.model()
+
+    def createEditor(self, parent, option, index):
+        # Check if index is actually non-computed class
+        if self.model.isAutomatic(index):
+            return super().createEditor(parent, option, index)
+        editor = QGlyphName(self.project, multiple = True, allow_classes = True)
+        return editor
+
+    def setEditorData(self, editor, index):
+        editor.setText(index.data())
+
+    def setModelData(self, editor, model, index):
+        model.setData(index,editor.text())
 
 class GlyphClassModel(QAbstractTableModel):
     def __init__(self, glyphclasses={}, parent=None):
@@ -51,7 +70,6 @@ class GlyphClassModel(QAbstractTableModel):
                 return name
             elif index.column() == 1 and not self.isAutomatic(index):
                 return " ".join(self.glyphclasses[name]["contents"])
-        if role == Qt.DecorationRole:
             if index.column() == 1 and self.isAutomatic(index):
                 return "<computed>"
         return None
@@ -156,6 +174,7 @@ class GlyphClassList(QTreeView):
         self.project = project
         self.setModel(GlyphClassModel(project.glyphclasses))
         self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.setItemDelegate(GlyphNameDelegate(self))
         self.setDragEnabled(True)
         self.customContextMenuRequested.connect(self.contextMenu)
         self.doubleClicked.connect(self.doubleClickHandler)
