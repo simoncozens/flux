@@ -20,6 +20,7 @@ from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot, QStringListModel
 from fontFeatures.shaperLib.Shaper import Shaper
 from fontFeatures.jankyPOS.Buffer import Buffer
 from .qbufferrenderer import QBufferRenderer
+from .qglyphname import QGlyphName
 from fontFeatures import Positioning, ValueRecord, Substitution, Chaining, Rule
 import sys
 import darkdetect
@@ -30,21 +31,6 @@ if darkdetect.isDark():
 else:
     precontext_style = "background-color: #ffaaaa"
     postcontext_style = "background-color: #aaaaff"
-
-class QGlyphLine(QLineEdit):
-    def __init__(self, completer):
-        super(QLineEdit, self).__init__()
-        self.setCompleter(completer)
-        self.setAcceptDrops(True)
-
-    def dropEvent(self, event):
-        data = event.mimeData()
-        if not data.hasText() or not data.text().startswith("@"):
-            event.reject()
-            return
-        self.setText(data.text())
-        self.returnPressed.emit()
-
 
 
 class QValueRecordEditor(QWidget):
@@ -97,11 +83,6 @@ class QRuleEditor(QDialog):
             self.backup_rule = None
 
         super(QRuleEditor, self).__init__()
-
-        self.completer = QCompleter()
-        self.model = QStringListModel()
-        self.completer.setModel(self.model)
-        self.model.setStringList(self.project.font.glyphs)
 
         splitter = QSplitter()
         self.slotview = QHBoxLayout()
@@ -287,10 +268,10 @@ class QRuleEditor(QDialog):
                 slotLayout.addWidget(glyphHolder)
 
             # This is the part that adds a new glyph to a slot
-            newglyph = QGlyphLine(self.completer)
+            newglyph = QGlyphName(self.project)
             newglyph.slotindex = ix
             newglyph.contents = contents
-            newglyph.returnPressed.connect(self.addGlyphToSlot)
+            newglyph.glyphline.returnPressed.connect(self.addGlyphToSlot)
             slotLayout.addWidget(newglyph)
 
 
@@ -351,7 +332,8 @@ class QRuleEditor(QDialog):
         editingWidgets = []
         if isinstance(self.rule, Substitution):
             replacements = [x[0] for x in self.rule.replacement if x]
-            widget = QLineEdit(" ".join(replacements) or "")
+            widget = QGlyphName(self.project, multiple = len(self.rule.shaper_inputs()) < 2)
+            widget.setText(" ".join(replacements) or "")
             widget.position = 0
             widget.returnPressed.connect(self.replacementChanged)
             editingWidgets.append(widget)
