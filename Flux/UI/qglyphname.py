@@ -12,12 +12,14 @@ from PyQt5.QtWidgets import (
     QScrollArea,
     QGridLayout,
     QScrollArea,
-     QStyle
+     QStyle,
+
 )
 from Flux.ThirdParty.QFlowLayout import QFlowLayout
 from fontFeatures.jankyPOS.Buffer import Buffer
 from Flux.UI.qbufferrenderer import QBufferRenderer
 from PyQt5.QtCore import Qt, pyqtSignal, QStringListModel, QMargins
+from PyQt5.QtGui import QValidator
 
 import darkdetect
 
@@ -26,6 +28,31 @@ if darkdetect.isDark():
     deselected_style = "background-color: #322b2b;"
 else:
     selected_style = "background-color: #322b2b;"
+
+
+class GlyphNameValidator(QValidator):
+    def __init__(self, parent):
+        super().__init__()
+        self.glyphSet = parent.project.font.glyphs
+        self.multiple = parent.multiple
+        self.allow_classes = parent.allow_classes
+
+    def validate(self, s, pos):
+        if s in self.glyphSet:
+            return (QValidator.Acceptable, s, pos)
+        if not self.multiple and " " in s:
+            return (QValidator.Invalid, s, pos)
+        if not self.allow_classes and "@" in s:
+            return (QValidator.Invalid, s, pos)
+        # XXX Other things not acceptable in glyphs here?
+        if self.multiple:
+            if all([ (g in self.glyphSet) for g in s.split()]):
+                return (QValidator.Acceptable, s, pos)
+        return (QValidator.Intermediate, s, pos)
+
+    def fixup(self, s):
+        # Trim multiple spaces?
+        pass
 
 class QGlyphBox(QWidget):
     def __init__(self, parent, glyph):
@@ -97,16 +124,13 @@ class QGlyphPicker(QDialog):
 
     def setupGrid(self):
         self.clearLayout(self.qgrid)
-        print("Drawing")
         for g in self.project.font.glyphs:
             w = QGlyphBox(self, g)
             self.widgets[g] = w
-        print("Done")
 
     def drawGrid(self):
         for g in self.project.font.glyphs:
             self.qgrid.addWidget(self.widgets[g])
-        print("Done")
 
     def filterGrid(self):
         t = self.searchbar.text()
@@ -173,7 +197,7 @@ class QGlyphName(QWidget):
         if not hasattr(self.project, "completermodel"):
             self.project.completermodel = QStringListModel()
             self.project.completermodel.setStringList(self.project.font.glyphs)
-
+        self.glyphline.setValidator(GlyphNameValidator(self))
 
         if multiple:
             self.completer = MultiCompleter()
