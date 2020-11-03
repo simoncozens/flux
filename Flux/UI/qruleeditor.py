@@ -190,7 +190,7 @@ class QRuleEditor(QDialog):
             print(f'{glyphname} not found')
             l.setText("")
             return
-        l.contents[l.slotindex].append(glyphname)
+        l.owner.contents[l.owner.slotindex].append(glyphname)
         self.arrangeSlots()
         self.representative_string = self.makeRepresentativeString()
         self.resetBuffer()

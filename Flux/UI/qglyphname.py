@@ -205,6 +205,7 @@ class QGlyphName(QWidget):
             self.completer = QCompleter()
         self.completer.setModel(self.project.completermodel)
         self.glyphline.setCompleter(self.completer)
+        self.glyphline.owner = self
         if self.allow_classes:
             self.setAcceptDrops(True)
 
