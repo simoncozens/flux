@@ -2,7 +2,11 @@ from PyQt5.QtCore import QPoint, QMargins, Qt, QRectF
 from PyQt5.QtGui import QGlyphRun, QPainter, QRawFont, QColor, QTransform, QPainterPath, QPen
 from PyQt5.QtWidgets import QWidget, QGraphicsScene, QGraphicsPathItem, QGraphicsView
 import glyphsLib
+import darkdetect
 
+inkcolor = (0,0,0)
+if darkdetect.isDark():
+    inkcolor = (255,255,255)
 
 class QBufferRenderer(QGraphicsView):
     def __init__(self, project, buf=None):
@@ -25,7 +29,7 @@ class QBufferRenderer(QGraphicsView):
             if self.buf.direction == "RTL":
                 items = list(reversed(items))
             for g in items:
-                color = (255,255,255)
+                color = inkcolor
                 if hasattr(g, "color"):
                     color = g.color
                 self.drawGlyph_glyphs(self.scene, g, xcursor + (g.position.xPlacement or 0), (g.position.yPlacement or 0), color)
