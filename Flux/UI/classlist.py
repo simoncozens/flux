@@ -19,7 +19,7 @@ class GlyphNameDelegate(QStyledItemDelegate):
 
     def createEditor(self, parent, option, index):
         # Check if index is actually non-computed class
-        if self.model.isAutomatic(index):
+        if self.model.isAutomatic(index) or index.column() == 0:
             return super().createEditor(parent, option, index)
         editor = QGlyphName(self.project, multiple = True, allow_classes = True)
         editor.setParent(parent)
