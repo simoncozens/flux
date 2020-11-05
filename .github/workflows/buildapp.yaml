@@ -62,3 +62,10 @@ jobs:
       with:
         name: application
         path: dist/Flux.zip
+    - name: Trash Python packages
+      run: rm -rf /Users/runner/hostedtoolcache/Python/3.8.6/x64/lib/python3.8/site-packages/
+    - name: Test it can run
+      run: |
+        ./dist/Flux.app/MacOS/Flux &
+        sleep 10
+        ps auxw | grep Flux.app | grep -v grep
