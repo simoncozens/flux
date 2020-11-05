@@ -32,7 +32,7 @@ class QBufferRenderer(QGraphicsView):
                 color = inkcolor
                 if hasattr(g, "color"):
                     color = g.color
-                self.drawGlyph_glyphs(self.scene, g, xcursor + (g.position.xPlacement or 0), (g.position.yPlacement or 0), color)
+                self.drawGlyph(self.scene, g, xcursor + (g.position.xPlacement or 0), (g.position.yPlacement or 0), color)
                 if hasattr(g, "anchor"):
                     self.drawCross(self.scene, g.anchor[0], g.anchor[1], color)
                 else:
@@ -67,20 +67,20 @@ class QBufferRenderer(QGraphicsView):
         line.setTransform(reflect)
         scene.addItem(line)
 
-    def drawGlyph_glyphs(self, scene, item, offsetX=0, offsetY=0, color=(255,255,255)):
+    def drawGlyph(self, scene, item, offsetX=0, offsetY=0, color=(255,255,255)):
         glyph = item.glyph
-        font = self.project.font.font
-        if not glyph in font.font.glyphs:
-            print("No glyph "+glyph)
+        font = self.project.font
+        if not glyph in font:
             return
-        layer = font.font.glyphs[glyph].layers[font.id]
+        layer = font[glyph]
         path = QPainterPath()
         path.setFillRule(Qt.WindingFill)
-        for gsPath in self.decomposedPaths(layer, item):
-            segs = gsPath.segments
-            path.moveTo(segs[0][0].x, segs[0][0].y)
+        # XXX Decompose components
+        for c in layer.contours: # I've forgotten what item does but it
+            segs = c.segments
+            path.moveTo(segs[-1].points[-1].x, segs[-1].points[-1].y)
             for seg in segs:
-                tuples = [(a.x, a.y) for a in seg[1:]]
+                tuples = [(a.x, a.y) for a in seg.points]
                 flattuples = list(sum(tuples,()))
                 if len(tuples) == 3:
                     path.cubicTo(*flattuples)
@@ -104,3 +104,29 @@ class QBufferRenderer(QGraphicsView):
 
     def resizeEvent(self, e):
         self.fitInView(self.scene.sceneRect(), Qt.KeepAspectRatio)
+
+if __name__ == "__main__":
+    from Flux.project import FluxProject
+    from PyQt5.QtWidgets import QApplication, QVBoxLayout
+    from fontFeatures.shaperLib.Buffer import Buffer
+    import sys
+
+    app = 0
+    if QApplication.instance():
+        app = QApplication.instance()
+    else:
+        app = QApplication(sys.argv)
+
+    w = QWidget()
+    w.resize(510, 210)
+    v_box_1 = QVBoxLayout()
+
+    proj = FluxProject.new("Rajdhani.glyphs")
+    buf = Buffer(proj.font, unicodes = "ABC")
+    buf.map_to_glyphs()
+    v_box_1.addWidget(QBufferRenderer(proj,buf))
+
+    w.setLayout(v_box_1)
+
+    w.show()
+    sys.exit(app.exec_())

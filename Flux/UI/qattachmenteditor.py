@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import pyqtSlot
 from fontFeatures.shaperLib.Shaper import Shaper
-from fontFeatures.jankyPOS.Buffer import Buffer
+from fontFeatures.shaperLib.Buffer import Buffer
 from .qruleeditor import QRuleEditor
 from fontFeatures import Attachment
 import sys

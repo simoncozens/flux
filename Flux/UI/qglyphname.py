@@ -16,7 +16,7 @@ from PyQt5.QtWidgets import (
 
 )
 from Flux.ThirdParty.QFlowLayout import QFlowLayout
-from fontFeatures.jankyPOS.Buffer import Buffer
+from fontFeatures.shaperLib.Buffer import Buffer
 from Flux.UI.qbufferrenderer import QBufferRenderer
 from PyQt5.QtCore import Qt, pyqtSignal, QStringListModel, QMargins
 from PyQt5.QtGui import QValidator
@@ -33,7 +33,7 @@ else:
 class GlyphNameValidator(QValidator):
     def __init__(self, parent):
         super().__init__()
-        self.glyphSet = parent.project.font.glyphs
+        self.glyphSet = parent.project.font.keys()
         self.multiple = parent.multiple
         self.allow_classes = parent.allow_classes
 

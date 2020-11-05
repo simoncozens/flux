@@ -18,7 +18,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot, QStringListModel
 from fontFeatures.shaperLib.Shaper import Shaper
-from fontFeatures.jankyPOS.Buffer import Buffer
+from fontFeatures.shaperLib.Buffer import Buffer
 from .qbufferrenderer import QBufferRenderer
 from .qglyphname import QGlyphName
 from fontFeatures import Positioning, ValueRecord, Substitution, Chaining, Rule

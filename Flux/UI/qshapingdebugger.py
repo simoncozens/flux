@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (
     QAbstractItemView
 )
 from PyQt5.QtCore import Qt
-from fontFeatures.jankyPOS.Buffer import Buffer
+from fontFeatures.shaperLib.Buffer import Buffer
 from fontFeatures.shaperLib.Shaper import Shaper
 from copy import copy, deepcopy
 import re
@@ -42,7 +42,7 @@ class QShapingDebugger(QSplitter):
       self.shapeText()
 
     def shapeText(self):
-      buf = Buffer(self.project.font.font, unicodes=self.text)
+      buf = Buffer(self.project.font, unicodes=self.text)
       self.messageTable.setRowCount(0)
       if not self.text:
         buf.clear_mask()

@@ -1,6 +1,6 @@
 from lxml import etree
 from fontFeatures import FontFeatures, Routine, Substitution
-from fontFeatures.fontProxy import FontProxy
+from babelfont import Babelfont
 from fontFeatures.feaLib import FeaUnparser
 
 class FluxProject:
@@ -9,19 +9,19 @@ class FluxProject:
     def new(klass, fontfile):
         self = FluxProject()
         self.fontfile = fontfile
-        self.font = FontProxy.opener(self.fontfile)
+        self.font = Babelfont.open(self.fontfile)
         self.fontfeatures = FontFeatures()
         self.glyphclasses = {}
 
         ## XXX Glyphs specific code here
-        for glyphclass in self.font.font.font.classes:
-            self.glyphclasses[glyphclass.name] = {
+        for groupname, contents in self.font.groups.items():
+            self.glyphclasses[groupname] = {
                 "type": "manual",
-                "contents": glyphclass.code.split()
+                "contents": contents
             }
-            self.fontfeatures.namedClasses[glyphclass.name] = tuple(glyphclass.code.split())
+            self.fontfeatures.namedClasses[groupname] = tuple(contents)
         # Load up the anchors too
-        self._glyphs_load_anchors()
+        self._load_anchors()
         return self
 
     def __init__(self, file=None):
@@ -30,7 +30,7 @@ class FluxProject:
         self.filename = file
         self.xml = etree.parse(file).getroot()
         self.fontfile = self.xml.find("source").get("file")
-        self.font = FontProxy.opener(self.fontfile)
+        self.font = Babelfont.open(self.fontfile)
         self.fontfeatures = FontFeatures()
         self.xmlToFontFeatures()
 
@@ -51,16 +51,14 @@ class FluxProject:
 
         # The font file is the authoritative source of the anchors, so load them
         # from the font file on load, in case they have changed.
-        self._glyphs_load_anchors()
+        self._load_anchors()
 
-    def _glyphs_load_anchors(self):
-        gsmaster = self.font.font
-        for g in self.font.glyphs:
-            layer = gsmaster.font.glyphs[g].layers[gsmaster.id]
-            for a in layer.anchors:
+    def _load_anchors(self):
+        for g in self.font:
+            for a in g.anchors:
                 if not a.name in self.fontfeatures.anchors:
                     self.fontfeatures.anchors[a.name] = {}
-                self.fontfeatures.anchors[a.name][g] = (a.position.x, a.position.y)
+                self.fontfeatures.anchors[a.name][g.name] = (a.x, a.y)
 
     def _slotArray(self, el):
         return [[g.text for g in slot.findall("glyph")] for slot in list(el)]
