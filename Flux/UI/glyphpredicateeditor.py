@@ -1,7 +1,6 @@
 from PyQt5.QtCore import Qt, pyqtSlot, QModelIndex, QAbstractTableModel, QItemSelectionModel, pyqtSignal
 from PyQt5.QtGui import QStandardItem, QStandardItemModel
 from PyQt5.QtWidgets import QTreeView, QMenu,QComboBox, QHBoxLayout, QVBoxLayout, QPushButton, QLineEdit, QLabel, QDialog, QTextEdit, QDialogButtonBox
-import qtawesome as qta
 import re
 from glyphtools import get_glyph_metrics
 
