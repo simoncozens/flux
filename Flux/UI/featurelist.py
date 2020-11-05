@@ -218,7 +218,7 @@ class FeatureListModel(QAbstractItemModel):
 
     def getFeatureNameAtRow(self, row):
         keys = list(self.project.fontfeatures.features.keys())
-        return keys[row]
+        return str(keys[row])
 
     def getRoutinesAtRow(self, row):
         values = list(self.project.fontfeatures.features.values())

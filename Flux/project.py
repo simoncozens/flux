@@ -2,6 +2,8 @@ from lxml import etree
 from fontFeatures import FontFeatures, Routine, Substitution
 from babelfont import Babelfont
 from fontFeatures.feaLib import FeaUnparser
+from fontTools.ttLib import TTFont
+from fontFeatures.ttLib import unparse
 
 class FluxProject:
 
@@ -13,6 +15,9 @@ class FluxProject:
         self.fontfeatures = FontFeatures()
         self.glyphclasses = {}
         self.filename = None
+
+        if self.fontfile.endswith(".ttf") or self.fontfile.endswith(".otf"):
+            self._load_features_binary()
 
         for groupname, contents in self.font.groups.items():
             self.glyphclasses[groupname] = {
@@ -129,3 +134,10 @@ class FluxProject:
     def loadFEA(self, filename):
         unparsed = FeaUnparser(open(filename,"r"))
         self.fontfeatures = unparsed.ff
+
+    def _load_features_binary(self):
+        tt = TTFont(self.fontfile)
+        self.fontfeatures = unparse(tt)
+        print(self.fontfeatures.features)
+
+

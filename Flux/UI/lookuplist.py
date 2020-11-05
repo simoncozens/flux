@@ -69,8 +69,11 @@ class LookupList(QTreeView):
         self.doubleClicked.connect(self.doubleClickHandler)
 
     def highlight(self, routineName):
+        routineNames= [x.name for x in self.project.fontfeatures.routines]
+        if not routineName in routineNames:
+            return
         self.collapseAll()
-        routineRow = [x.name for x in self.project.fontfeatures.routines].index(routineName)
+        routineRow = routineNames.index(routineName)
         if routineRow:
             self.scrollTo(self.model().index(routineRow+1,0))
             self.setCurrentIndex(self.model().index(routineRow,0))
