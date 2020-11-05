@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (
     QSplitter,
     QMessageBox
 )
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QSettings
 from Flux.UI.qfontfeatures import QFontFeaturesPanel
 from Flux.UI.qshapingdebugger import QShapingDebugger
 from Flux.UI.qruleeditor import QRuleEditor
@@ -24,11 +24,17 @@ import os.path, pkgutil, sys
 class FluxEditor(QSplitter):
     def __init__(self, proj):
         super(QSplitter, self).__init__()
+        self.settings = QSettings()
+        geometry = self.settings.value('mainwindowgeometry', '')
+        if geometry:
+            self.restoreGeometry(geometry)
+
         self.mainMenu = QMenuBar(self)
         self.project = proj
         self.loadPlugins()
         if not proj:
-            self.openFluxOrGlyphs()
+            self.openFluxOrFont() # Exits if there still isn't one
+        self.setWindowTitle("Flux - %s" % (self.project.filename or "New Project"))
         self.v_box_1 = QVBoxLayout()
         self.fontfeaturespanel = QFontFeaturesPanel(self.project, self)
         self.v_box_1.addWidget(self.fontfeaturespanel)
@@ -131,8 +137,9 @@ class FluxEditor(QSplitter):
         if not glyphs:
             return
         self.project = FluxProject.new(glyphs[0])
+        self.setWindowTitle("Flux - %s" % (self.project.filename or "New Project"))
 
-    def openFluxOrGlyphs(self):
+    def openFluxOrFont(self): # Exits if there still isn't one
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Information)
 
@@ -144,7 +151,7 @@ class FluxEditor(QSplitter):
         filename = QFileDialog.getOpenFileName(
             self, "Open Flux file", filter="Flux or font file (*.glyphs *.ufo *.otf *.ttf *.fluxml)"
         )
-        if not filename:
+        if not filename or not filename[0]:
             if not self.project:
                 sys.exit(0)
             return
@@ -152,15 +159,17 @@ class FluxEditor(QSplitter):
             self.project = FluxProject(filename[0])
         else:
             self.project = FluxProject.new(filename[0])
+        self.setWindowTitle("Flux - %s" % (self.project.filename or "New Project"))
 
     def file_save_as(self):
         filename = QFileDialog.getSaveFileName(
             self, "Save File", filter="Flux projects (*.fluxml)"
         )
-        if filename:
+        if filename and filename[0]:
+            self.project.filename = filename
             self.project.save(filename[0])
             QToaster.showMessage(self, "Saved successfully", desktop=True)
-            self.project.filename = filename
+            self.setWindowTitle("Flux - %s" % (self.project.filename or "New Project"))
             self.saveFile.setEnabled(True)
             self.setWindowModified(False)
 
@@ -220,6 +229,8 @@ class FluxEditor(QSplitter):
         pass
 
     def closeEvent(self, event):
+        geometry = self.saveGeometry()
+        self.settings.setValue('mainwindowgeometry', geometry)
         if not self.isWindowModified():
             event.accept()
             return

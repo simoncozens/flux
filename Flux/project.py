@@ -12,8 +12,8 @@ class FluxProject:
         self.font = Babelfont.open(self.fontfile)
         self.fontfeatures = FontFeatures()
         self.glyphclasses = {}
+        self.filename = None
 
-        ## XXX Glyphs specific code here
         for groupname, contents in self.font.groups.items():
             self.glyphclasses[groupname] = {
                 "type": "manual",

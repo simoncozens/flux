@@ -11,9 +11,14 @@ from PyQt5.QtWidgets import QApplication
 
 app = QApplication(sys.argv)
 app.setApplicationName("Flux")
+app.setOrganizationDomain("corvelsoftware.co.uk")
+app.setOrganizationName("Corvel Software")
 proj = None
 if len(sys.argv) > 1:
-    proj = FluxProject(sys.argv[1])
+    if sys.argv[1].endswith(".fluxml"):
+        proj = FluxProject(sys.argv[1])
+    else:
+        proj = FluxProject.new(sys.argv[1])
 f = FluxEditor(proj)
 f.show()
 sys.exit(app.exec_())
