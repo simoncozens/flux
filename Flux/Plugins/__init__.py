@@ -13,8 +13,8 @@ class FluxPlugin(QDialog):
         self.completer = QCompleter()
         self.model = QStringListModel()
         self.completer.setModel(self.model)
-
-        glyphselectors = list(self.project.font.glyphs) + [ "@"+n for n in self.project.glyphclasses.keys() ]
+        # Replace this with a qglyphname instead
+        glyphselectors = list(self.project.font.keys()) + [ "@"+n for n in self.project.glyphclasses.keys() ]
         self.model.setStringList(glyphselectors)
         self.setWindowTitle(sys.modules[self.__module__].plugin_name)
         self.form = self.createForm()

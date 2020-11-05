@@ -124,17 +124,17 @@ class QGlyphPicker(QDialog):
 
     def setupGrid(self):
         self.clearLayout(self.qgrid)
-        for g in self.project.font.glyphs:
+        for g in self.project.font.keys():
             w = QGlyphBox(self, g)
             self.widgets[g] = w
 
     def drawGrid(self):
-        for g in self.project.font.glyphs:
+        for g in self.project.font.keys():
             self.qgrid.addWidget(self.widgets[g])
 
     def filterGrid(self):
         t = self.searchbar.text()
-        for g in self.project.font.glyphs:
+        for g in self.project.font.keys():
             v = True
             if t and t not in g:
                 v = False
@@ -196,7 +196,7 @@ class QGlyphName(QWidget):
         self.glyphline = QLineEdit()
         if not hasattr(self.project, "completermodel"):
             self.project.completermodel = QStringListModel()
-            self.project.completermodel.setStringList(self.project.font.glyphs)
+            self.project.completermodel.setStringList(self.project.font.keys())
         self.glyphline.setValidator(GlyphNameValidator(self))
 
         if multiple:

@@ -186,7 +186,7 @@ class QRuleEditor(QDialog):
         if glyphname.startswith("@") and glyphname[1:] in self.project.fontfeatures.namedClasses.keys():
             # It's OK
             pass
-        elif glyphname not in self.project.font.glyphs:
+        elif glyphname not in self.project.font.keys():
             print(f'{glyphname} not found')
             l.setText("")
             return

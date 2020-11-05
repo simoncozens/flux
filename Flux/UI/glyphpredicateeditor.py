@@ -29,7 +29,7 @@ class GlyphClassPredicate(QHBoxLayout):
         self.editor = editor
         self.project = editor.project
         self.matches = []
-        self.allGlyphs = self.project.font.glyphs
+        self.allGlyphs = self.project.font.keys()
         self.metrics = { g: get_glyph_metrics(self.project.font.font, g) for g in self.allGlyphs }
         self.arguments = arguments
         self.predicateType = QComboBox()
