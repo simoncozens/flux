@@ -69,6 +69,6 @@ jobs:
         mkdir test
         cd test
         unzip ../dist/Flux.zip
-        ./Flux.app/MacOS/Flux &
+        ./Flux.app/Contents/MacOS/Flux &
         sleep 15
         ps auxw | grep Flux.app | grep -v grep
