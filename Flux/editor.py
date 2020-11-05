@@ -126,7 +126,7 @@ class FluxEditor(QSplitter):
             pass
         # Open the glyphs file
         glyphs = QFileDialog.getOpenFileName(
-            self, "Open Glyphs file", filter="Glyphs (*.glyphs)"
+            self, "Open font file", filter="Font file (*.glyphs *.ufo *.otf *.ttf)"
         )
         if not glyphs:
             return
@@ -136,22 +136,22 @@ class FluxEditor(QSplitter):
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Information)
 
-        msg.setText("Please open a .glyphs file or .fluxml file to get started")
+        msg.setText("Please open a font file or a .fluxml file to get started")
         msg.setWindowTitle("Flux")
         msg.setStandardButtons(QMessageBox.Ok)
         msg.exec_()
 
         filename = QFileDialog.getOpenFileName(
-            self, "Open Flux/Glyphs file", filter="Flux or Glyphs (*.glyphs *.fluxml)"
+            self, "Open Flux file", filter="Flux or font file (*.glyphs *.ufo *.otf *.ttf *.fluxml)"
         )
         if not filename:
             if not self.project:
                 sys.exit(0)
             return
-        if filename[0].endswith(".glyphs"):
-            self.project = FluxProject.new(filename[0])
-        else:
+        if filename[0].endswith(".fluxml"):
             self.project = FluxProject(filename[0])
+        else:
+            self.project = FluxProject.new(filename[0])
 
     def file_save_as(self):
         filename = QFileDialog.getSaveFileName(

@@ -82,7 +82,9 @@ class QBufferRenderer(QGraphicsView):
             for seg in segs:
                 tuples = [(a.x, a.y) for a in seg.points]
                 flattuples = list(sum(tuples,()))
-                if len(tuples) == 3:
+                if len(tuples) == 2:
+                    path.quadTo(*flattuples)
+                elif len(tuples) == 3:
                     path.cubicTo(*flattuples)
                 else:
                     path.lineTo(*flattuples)
