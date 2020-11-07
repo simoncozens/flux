@@ -18,6 +18,8 @@ class FluxProject:
 
         if self.fontfile.endswith(".ttf") or self.fontfile.endswith(".otf"):
             self._load_features_binary()
+        else:
+            self._load_features_source()
 
         for groupname, contents in self.font.groups.items():
             self.glyphclasses[groupname] = {
@@ -140,4 +142,10 @@ class FluxProject:
         self.fontfeatures = unparse(tt)
         print(self.fontfeatures.features)
 
-
+    def _load_features_source(self):
+        if self.font.features and self.font.features.text:
+            try:
+                unparsed = FeaUnparser(self.font.features.text)
+                self.fontfeatures = unparsed.ff
+            except Exception as e:
+                print("Could not load feature file: %s" % e)
