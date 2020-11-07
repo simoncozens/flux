@@ -414,7 +414,7 @@ class QRuleEditor(QDialog):
         # how the *real* shaping process will take place; buffer direction
         # and script, and hence choice of complex shaper, and hence from
         # that choice of features to be processed.
-        unicodes = [self.project.font.map_glyph_to_unicode(x) for x in representative_string]
+        unicodes = [self.project.font.codepointForGlyph(x) for x in representative_string]
         unicodes = [x for x in unicodes if x]
         tounicodes = "".join(map (chr, unicodes))
         bufferForGuessing = Buffer(self.project.font, unicodes = tounicodes)
@@ -454,21 +454,18 @@ class QRuleEditor(QDialog):
 
 
     def makeBuffer(self, before_after="before"):
-        print(self.representative_string)
         buf = Buffer(
             self.project.font, glyphs=self.representative_string, direction=self.buffer_direction
         )
         shaper = Shaper(self.project.fontfeatures, self.project.font)
 
         shaper.execute(buf,features = self.makeShaperFeatureArray())
-        print(before_after)
         if before_after == "after" and self.rule:
             buf.clear_mask() # XXX
             try:
                 self.rule.apply_to_buffer(buf)
             except Exception as e:
                 print("Couldn't shape: "+str(e))
-        print(buf.serialize())
         return buf
 
 
