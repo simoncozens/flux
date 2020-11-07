@@ -5,3 +5,4 @@ darkdetect
 git+git://github.com/simoncozens/glyphsLib@with-fixes#egg=glyphsLib
 git+git://github.com/simoncozens/glyphtools#egg=glyphtools
 git+git://github.com/simoncozens/fontfeatures.git#egg=fontfeatures
+git+git://github.com/simoncozens/babelfont.git#egg=babelfont
