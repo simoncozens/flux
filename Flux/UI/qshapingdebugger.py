@@ -16,12 +16,13 @@ import re
 
 class QShapingDebugger(QSplitter):
     def __init__(self, editor, project):
-      self.text = ""
       self.editor = editor
       self.project = project
       super(QSplitter, self).__init__()
+      self.text = self.getReasonableTextForFont(self.project.font)
       self.qbr = QBufferRenderer(project, None)
       textbox = QLineEdit()
+      textbox.setText(self.text)
       textbox.setMaximumHeight(textbox.height())
       textbox.textChanged[str].connect(self.textChanged)
       self.messageTable = QTableWidget()
@@ -119,3 +120,13 @@ class QShapingDebugger(QSplitter):
     def textChanged(self, text):
       self.text = text
       self.shapeText()
+
+    def getReasonableTextForFont(self, font):
+        text = ""
+        if font.glyphForCodepoint(0x627): # Arabic
+            text  = text + "ابج "
+        elif font.glyphForCodepoint(0x915): # Devanagari
+            text = text + "कचण "
+        elif font.glyphForCodepoint(0x61): # Latin
+            text = text + "abc "
+        return text.strip()
