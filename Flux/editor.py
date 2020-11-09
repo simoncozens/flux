@@ -20,6 +20,7 @@ from Flux.project import FluxProject
 from Flux.ThirdParty.qtoaster import QToaster
 import Flux.Plugins
 import os.path, pkgutil, sys
+from functools import partial
 
 
 class FluxEditor(QSplitter):
@@ -63,7 +64,7 @@ class FluxEditor(QSplitter):
 
     def loadPlugins(self):
         pluginpath = os.path.dirname(Flux.Plugins.__file__)
-        if sys.frozen:
+        if hasattr(sys, "frozen"):
             pluginpath = "lib/python3.8/flux/Plugins"
         pluginpath2 = os.path.join(QStandardPaths.standardLocations(QStandardPaths.AppDataLocation)[0], "Plugins")
         plugin_loaders = pkgutil.iter_modules([pluginpath, pluginpath2])
@@ -115,13 +116,14 @@ class FluxEditor(QSplitter):
         pluginMenu = self.mainMenu.addMenu("&Plugins")
         for plugin in self.plugins.values():
             p = QAction(plugin.plugin_name, self)
-            p.triggered.connect(lambda: self.runPlugin(plugin))
+            p.triggered.connect(partial(self.runPlugin, plugin))
             pluginMenu.addAction(p)
         pluginMenu.addSeparator()
         dummy = QAction("Reload plugins", self)
         pluginMenu.addAction(dummy)
 
-    def runPlugin(self, plugin):
+    def runPlugin(self,plugin):
+        print(plugin.plugin_name)
         dialog = plugin.Dialog(self.project)
         result = dialog.exec_()
         if result:
