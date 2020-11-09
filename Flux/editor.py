@@ -36,7 +36,14 @@ class FluxEditor(QSplitter):
         self.loadPlugins()
         if not proj:
             self.openFluxOrFont() # Exits if there still isn't one
-        self.setWindowTitle("Flux - %s" % (self.project.filename or "New Project"))
+        self.setWindowTitle("Flux - %s" % (self.project.filename or self.project.fontfile))
+        self.setupFileMenu()
+        self.setupPluginMenu()
+        self.left = QWidget()
+        self.right = QWidget()
+        self.rebuild_ui()
+
+    def rebuild_ui(self):
         self.v_box_1 = QVBoxLayout()
         self.fontfeaturespanel = QFontFeaturesPanel(self.project, self)
         self.v_box_1.addWidget(self.fontfeaturespanel)
@@ -53,14 +60,13 @@ class FluxEditor(QSplitter):
         self.stack.addWidget(self.attachmentEditor)
         self.v_box_2.addWidget(self.stack)
 
-        self.left = QWidget()
+        if self.left.layout():
+            QWidget().setLayout(self.left.layout())
+            QWidget().setLayout(self.right.layout())
         self.left.setLayout(self.v_box_1)
-        self.right = QWidget()
         self.right.setLayout(self.v_box_2)
         self.addWidget(self.left)
         self.addWidget(self.right)
-        self.setupFileMenu()
-        self.setupPluginMenu()
 
     def loadPlugins(self):
         pluginpath = os.path.dirname(Flux.Plugins.__file__)
@@ -141,7 +147,8 @@ class FluxEditor(QSplitter):
         if not glyphs:
             return
         self.project = FluxProject.new(glyphs[0])
-        self.setWindowTitle("Flux - %s" % (self.project.filename or "New Project"))
+        self.setWindowTitle("Flux - %s" % (self.project.filename or self.project.fontfile))
+        self.rebuild_ui()
 
     def openFluxOrFont(self): # Exits if there still isn't one
         msg = QMessageBox()
@@ -163,7 +170,7 @@ class FluxEditor(QSplitter):
             self.project = FluxProject(filename[0])
         else:
             self.project = FluxProject.new(filename[0])
-        self.setWindowTitle("Flux - %s" % (self.project.filename or "New Project"))
+        self.setWindowTitle("Flux - %s" % (self.project.filename or self.project.fontfile))
 
     def file_save_as(self):
         filename = QFileDialog.getSaveFileName(
