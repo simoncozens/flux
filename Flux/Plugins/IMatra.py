@@ -1,6 +1,8 @@
 from fontFeatures.feeLib.IMatra import IMatra as IMatra_FF
 from PyQt5.QtWidgets import QLabel, QDialog, QLineEdit, QGroupBox, QCompleter, QFormLayout, QComboBox
 from Flux.Plugins import FluxPlugin
+from Flux.UI.qglyphname import QGlyphName
+
 
 plugin_name = "IMatra Substitution"
 
@@ -8,14 +10,10 @@ class Dialog(FluxPlugin):
     def createForm(self):
         form = QGroupBox("IMatra parameters")
         layout = QFormLayout()
-        self.consonant_edit = QLineEdit()
-        self.consonant_edit.setCompleter(self.completer)
 
-        self.base_matra = QLineEdit()
-        self.base_matra.setCompleter(self.completer)
-
-        self.variants_edit = QLineEdit()
-        self.variants_edit.setCompleter(self.completer)
+        self.consonant_edit = QGlyphName(self.project, multiple=True, allow_classes=True)
+        self.base_matra = QGlyphName(self.project)
+        self.variants_edit = QGlyphName(self.project, multiple=True, allow_classes=True)
 
         layout.addRow(QLabel("Consonants"), self.consonant_edit)
         layout.addRow(QLabel("Base I-matra glyph"), self.base_matra)
