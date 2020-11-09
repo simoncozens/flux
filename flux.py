@@ -14,7 +14,7 @@ import qcrash.api as qcrash
 app = QApplication(sys.argv)
 app.setApplicationName("Flux")
 app.setOrganizationDomain("corvelsoftware.co.uk")
-app.setOrganizationName("Corvel Software")
+# app.setOrganizationName("Corvel Software")
 
 email = qcrash.backends.EmailBackend('simon@simon-cozens.org', 'flux')
 github = qcrash.backends.GithubBackend('simoncozens', 'flux')

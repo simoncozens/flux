@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (
     QSplitter,
     QMessageBox
 )
-from PyQt5.QtCore import Qt, QSettings
+from PyQt5.QtCore import Qt, QSettings, QStandardPaths
 from Flux.UI.qfontfeatures import QFontFeaturesPanel
 from Flux.UI.qshapingdebugger import QShapingDebugger
 from Flux.UI.qruleeditor import QRuleEditor
@@ -20,6 +20,7 @@ from Flux.project import FluxProject
 from Flux.ThirdParty.qtoaster import QToaster
 import Flux.Plugins
 import os.path, pkgutil, sys
+
 
 class FluxEditor(QSplitter):
     def __init__(self, proj):
@@ -61,10 +62,11 @@ class FluxEditor(QSplitter):
         self.setupPluginMenu()
 
     def loadPlugins(self):
-        # Load all available plugins
         pluginpath = os.path.dirname(Flux.Plugins.__file__)
-        # Additional plugin path here?
-        plugin_loaders = pkgutil.iter_modules([pluginpath])
+        if sys.frozen:
+            pluginpath = "lib/python3.8/flux/Plugins"
+        pluginpath2 = os.path.join(QStandardPaths.standardLocations(QStandardPaths.AppDataLocation)[0], "Plugins")
+        plugin_loaders = pkgutil.iter_modules([pluginpath, pluginpath2])
         self.plugins = {}
         for loader, module_name, is_pkg in plugin_loaders:
             if is_pkg:
