@@ -40,16 +40,14 @@ class QBufferRenderer(QGraphicsView):
         self.fitInView(self.scene.sceneRect(), Qt.KeepAspectRatio)
 
     def decomposedPaths(self, layer, item=None):
-        paths = layer.paths
+        paths = list(layer.contours)
         for c in layer.components:
-            t = c.transform
-            componentPaths = self.decomposedPaths(c.layer)
-            for c in componentPaths:
-                g = glyphsLib.GSPath()
-                g.nodes = [glyphsLib.GSNode((n.position.x, n.position.y), n.type) for n in c.nodes]
-                if not item or not hasattr(item, "anchor"):
-                    g.applyTransform(t)
-                paths.append(g)
+            glyph = c.baseGlyph
+            # Copy needed?
+            componentPaths = [x for x in self.project.font[glyph].contours]
+            for cp in componentPaths:
+                cp.transformBy(c.transformation)
+                paths.append(cp)
         return paths
 
     def drawCross(self, scene, x, y, color):
@@ -75,8 +73,7 @@ class QBufferRenderer(QGraphicsView):
         layer = font[glyph]
         path = QPainterPath()
         path.setFillRule(Qt.WindingFill)
-        # XXX Decompose components
-        for c in layer.contours: # I've forgotten what item does but it
+        for c in self.decomposedPaths(layer): # I've forgotten what item does but it
             segs = c.segments
             path.moveTo(segs[-1].points[-1].x, segs[-1].points[-1].y)
             for seg in segs:
