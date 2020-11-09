@@ -87,6 +87,8 @@ class GlyphClassModel(QAbstractTableModel):
                 return name
             elif index.column() == 1 and not self.isAutomatic(index):
                 return " ".join(self.glyphclasses[name]["contents"])
+            else:
+                return "<computed>"
         if role == Qt.DecorationRole:
             if index.column() == 1 and self.isAutomatic(index):
                 return "<computed>"
@@ -214,6 +216,16 @@ class GlyphClassList(QTreeView):
             if result:
                 self.model().setPredicates(index, predicates)
 
+    def update(self, index=QModelIndex()):
+        print(self.project.glyphclasses)
+        self.model().order = list(sorted(self.project.glyphclasses.keys()))
+        if index.isValid():
+            self.model().dataChanged.emit(index, index)
+        else:
+            self.model().beginResetModel()
+            self.model().dataChanged.emit(index, index)
+            self.model().endResetModel()
+        super().update()
 
     @pyqtSlot()
     def deleteClass(self):
