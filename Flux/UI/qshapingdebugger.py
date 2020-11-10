@@ -137,10 +137,10 @@ class QShapingDebugger(QSplitter):
 
     def getReasonableTextForFont(self, font):
         text = ""
-        if font.glyphForCodepoint(0x627) != ".notdef": # Arabic
+        if font.glyphForCodepoint(0x627, fallback=False): # Arabic
             text  = text + "ابج "
-        if font.glyphForCodepoint(0x915) != ".notdef": # Devanagari
+        if font.glyphForCodepoint(0x915, fallback=False): # Devanagari
             text = text + "कचण "
-        if font.glyphForCodepoint(0x61) != ".notdef": # Latin
+        if font.glyphForCodepoint(0x61, fallback=False): # Latin
             text = text + "abc "
         return text.strip()
