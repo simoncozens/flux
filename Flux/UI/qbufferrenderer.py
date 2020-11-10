@@ -34,17 +34,16 @@ class QBufferRenderer(QGraphicsView):
                     color = g.color
                 self.drawGlyph(self.scene, g, xcursor + (g.position.xPlacement or 0), (g.position.yPlacement or 0), color)
                 if hasattr(g, "anchor"):
-                    self.drawCross(self.scene, g.anchor[0], g.anchor[1], color)
-                else:
-                    xcursor = xcursor + g.position.xAdvance
+                    self.drawCross(self.scene, xcursor + g.anchor[0], g.anchor[1], color)
+                # else:
+                xcursor = xcursor + g.position.xAdvance
         self.fitInView(self.scene.sceneRect(), Qt.KeepAspectRatio)
 
     def decomposedPaths(self, layer, item=None):
         paths = list(layer.contours)
         for c in layer.components:
             glyph = c.baseGlyph
-            # Copy needed?
-            componentPaths = [x for x in self.project.font[glyph].contours]
+            componentPaths = [x.copy() for x in self.project.font[glyph].contours]
             for cp in componentPaths:
                 cp.transformBy(c.transformation)
                 paths.append(cp)
@@ -94,6 +93,7 @@ class QBufferRenderer(QGraphicsView):
         line.setPath(path)
         reflect = QTransform(1,0,0,-1,0,0)
         reflect.translate(offsetX, offsetY)
+        # print(f"Drawing {glyph} at offset {offsetX} {offsetY}")
         line.setTransform(reflect)
         scene.addItem(line)
 
