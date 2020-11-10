@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (
     QFormLayout,
     QComboBox,
     QMessageBox,
+    QCheckBox
 )
 from PyQt5.QtGui import QValidator
 from Flux.Plugins import FluxPlugin
@@ -72,6 +73,11 @@ class Dialog(FluxPlugin):
         layout.addRow(QLabel("Initial glyphs"), self.init_re)
         layout.addRow(QLabel("Medial glyphs"), self.medi_re)
         layout.addRow(QLabel("Final glyphs"), self.fina_re)
+
+        self.doCursive = QCheckBox()
+        self.doCursive.setChecked(True)
+
+        layout.addRow(QLabel("Do cursive attachment?"), self.doCursive)
         form.setLayout(layout)
         return form
 
@@ -110,7 +116,6 @@ class Dialog(FluxPlugin):
                 if base_init == base_name:
                     init_class.append(g2)
                     init_rules.addRule(fontFeatures.Substitution([[g]], [[g2]]))
-                    print(f"Init: {g2} Base Init: {base_init} Base: {g}")
                     break
 
             for g2 in arabic_glyphs:
@@ -176,6 +181,29 @@ class Dialog(FluxPlugin):
                 ],
             }
 
+        if self.doCursive.isChecked():
+            exitdict = {}
+            entrydict = {}
+            for g in glyphnames:
+                anchors = self.project.font[g].anchors
+                if not anchors:
+                    continue
+                entry = [a for a in anchors if a.name == "entry"]
+                exit = [a for a in anchors if a.name == "exit"]
+                if len(entry):
+                    entrydict[g] = (entry[0].x, entry[0].y)
+                if len(exit):
+                    exitdict[g] = (exit[0].x, exit[0].y)
+            s = fontFeatures.Attachment(
+                base_name="entry",
+                mark_name="exit",
+                bases=entrydict,
+                marks=exitdict,
+            )
+            r = fontFeatures.Routine(name="CursiveAttachment", rules=[s])
+            self.project.fontfeatures.routines.extend([r])
+            self.project.fontfeatures.addFeature("curs", [r])
+
         return super().accept()
 
     def detect_naming_scheme(self):
@@ -199,7 +227,6 @@ class Dialog(FluxPlugin):
             match_inits = len([g for g in glyphnames if re.search(res["init"], g)])
             match_medis = len([g for g in glyphnames if re.search(res["medi"], g)])
             match_finas = len([g for g in glyphnames if re.search(res["fina"], g)])
-            print(schema_name, match_isols, match_inits)
             if (
                 match_isols > 1
                 and match_inits > 1
