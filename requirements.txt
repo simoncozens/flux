@@ -7,3 +7,4 @@ git+git://github.com/simoncozens/glyphtools#egg=glyphtools
 git+git://github.com/simoncozens/fontfeatures.git#egg=fontfeatures
 git+git://github.com/simoncozens/babelfont.git#egg=babelfont
 qcrash
+PIL
