@@ -34,6 +34,7 @@ class GlyphNameValidator(QValidator):
     def __init__(self, parent):
         super().__init__()
         self.glyphSet = parent.project.font.keys()
+        self.classSet = parent.project.glyphclasses.keys()
         self.multiple = parent.multiple
         self.allow_classes = parent.allow_classes
 
@@ -46,7 +47,13 @@ class GlyphNameValidator(QValidator):
             return (QValidator.Invalid, s, pos)
         # XXX Other things not acceptable in glyphs here?
         if self.multiple:
-            if all([ (g in self.glyphSet) for g in s.split()]):
+            allOk = True
+            for g in s.split():
+                if g[0] == "@" and g[1:] not in self.classSet:
+                    allOk = False
+                elif g[0] != "@" and g not in self.glyphSet:
+                    allOk = False
+            if allOk:
                 return (QValidator.Acceptable, s, pos)
         return (QValidator.Intermediate, s, pos)
 
@@ -194,16 +201,19 @@ class QGlyphName(QWidget):
         self.setLayout(self.layout)
 
         self.glyphline = QLineEdit()
-        if not hasattr(self.project, "completermodel"):
-            self.project.completermodel = QStringListModel()
-            self.project.completermodel.setStringList(self.project.font.keys())
+        self.completermodel = QStringListModel()
+        if self.allow_classes:
+            self.completermodel.setStringList(list(self.project.font.keys()) + ["@"+x for x in self.project.glyphclasses.keys()])
+        else:
+            self.completermodel.setStringList(self.project.font.keys())
+
         self.glyphline.setValidator(GlyphNameValidator(self))
 
         if multiple:
             self.completer = MultiCompleter()
         else:
             self.completer = QCompleter()
-        self.completer.setModel(self.project.completermodel)
+        self.completer.setModel(self.completermodel)
         self.glyphline.setCompleter(self.completer)
         self.glyphline.owner = self
         if self.allow_classes:

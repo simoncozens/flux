@@ -30,5 +30,4 @@ class Dialog(FluxPlugin):
         routines = IMatra_FF.action(self.feeparser, consonants, base_matra, variants)
         self.project.fontfeatures.routines.extend(routines)
         routines[0].name = "IMatra"
-        print(routines)
         return super().accept()
