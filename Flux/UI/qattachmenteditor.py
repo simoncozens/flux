@@ -110,7 +110,7 @@ class QAttachmentEditor(QRuleEditor):
         # how the *real* shaping process will take place; buffer direction
         # and script, and hence choice of complex shaper, and hence from
         # that choice of features to be processed.
-        unicodes = [self.project.font.map_glyph_to_unicode(x) for x in inputglyphs]
+        unicodes = [self.project.font.codepointForGlyph(x) for x in inputglyphs]
         unicodes = [x for x in unicodes if x]
         tounicodes = "".join(map (chr, unicodes))
         bufferForGuessing = Buffer(self.project.font, unicodes = tounicodes)
