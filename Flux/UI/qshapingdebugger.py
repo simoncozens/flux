@@ -5,7 +5,9 @@ from PyQt5.QtWidgets import (
     QLabel,
     QTableWidget,
     QTableWidgetItem,
-    QAbstractItemView
+    QAbstractItemView,
+    QSizePolicy,
+    QHeaderView
 )
 from PyQt5.QtCore import Qt
 from fontFeatures.shaperLib.Buffer import Buffer
@@ -21,6 +23,10 @@ class QShapingDebugger(QSplitter):
       super(QSplitter, self).__init__()
       self.text = self.getReasonableTextForFont(self.project.font)
       self.qbr = QBufferRenderer(project, None)
+      sp = self.qbr.sizePolicy()
+      sp.setHorizontalPolicy(QSizePolicy.Maximum)
+      sp.setVerticalPolicy(QSizePolicy.MinimumExpanding)
+      self.qbr.setSizePolicy(sp)
       textbox = QLineEdit()
       textbox.setText(self.text)
       textbox.setMaximumHeight(textbox.height())
@@ -29,10 +35,18 @@ class QShapingDebugger(QSplitter):
       self.messageTable.setColumnCount(2)
       self.messageTable.verticalHeader().setVisible(False)
       self.messageTable.setHorizontalHeaderLabels(["message", "buffer"])
-      self.messageTable.horizontalHeader().setStretchLastSection(True)
+      header = self.messageTable.horizontalHeader()
+      headerWidth = self.messageTable.viewport().size().width()
+      header.resizeSection(0, headerWidth * 2 / 3)
+      header.setStretchLastSection(True)
       self.messageTable.setSelectionBehavior(QAbstractItemView.SelectRows)
       self.messageTable.selectionModel().selectionChanged.connect(self.renderPartialTrace)
       self.shaperOutput = QLabel()
+      self.shaperOutput.setWordWrap(True)
+      sp = self.shaperOutput.sizePolicy()
+      sp.setVerticalPolicy(QSizePolicy.Maximum)
+      self.shaperOutput.setSizePolicy(sp)
+
       self.setOrientation(Qt.Vertical)
       self.addWidget(textbox)
       self.addWidget(self.shaperOutput)
@@ -123,10 +137,10 @@ class QShapingDebugger(QSplitter):
 
     def getReasonableTextForFont(self, font):
         text = ""
-        if font.glyphForCodepoint(0x627): # Arabic
+        if font.glyphForCodepoint(0x627) != ".notdef": # Arabic
             text  = text + "ابج "
-        elif font.glyphForCodepoint(0x915): # Devanagari
+        if font.glyphForCodepoint(0x915) != ".notdef": # Devanagari
             text = text + "कचण "
-        elif font.glyphForCodepoint(0x61): # Latin
+        if font.glyphForCodepoint(0x61) != ".notdef": # Latin
             text = text + "abc "
         return text.strip()
