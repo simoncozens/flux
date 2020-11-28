@@ -36,7 +36,7 @@ class REValidator(QValidator):
 
 class Dialog(FluxPlugin):
     def createForm(self):
-        form = QGroupBox("IMatra parameters")
+        form = QGroupBox("Arabic parameters")
         layout = QFormLayout()
         naming, regexps = self.detect_naming_scheme()
         if naming:
