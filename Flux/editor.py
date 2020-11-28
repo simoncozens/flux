@@ -219,11 +219,11 @@ class FluxEditor(QSplitter):
 
     def update(self):
         self.fontfeaturespanel.update()
-        self.shapingDebugger.shapeText()
+        self.shapingDebugger.update()
         super().update()
 
     def reshape(self):
-        self.shapingDebugger.shapeText()
+        self.shapingDebugger.update()
 
     def showRuleEditor(self, rule, index=None):
         self.ruleEditor.setRule(rule, index)

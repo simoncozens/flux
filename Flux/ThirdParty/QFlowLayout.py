@@ -1,29 +1,17 @@
-
 # Adapted from https://gist.github.com/Cysu/7461066
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import (
-    QWidget,
-    QApplication,
-    QHBoxLayout,
-    QLineEdit,
-    QVBoxLayout,
-    QPushButton,
-    QCompleter,
-    QLabel,
     QSizePolicy,
-    QDialog,
-    QDialogButtonBox,
-    QLayout,
-    QGridLayout,
-     QStyle
-)
+    QLayout
+    )
+
 class QFlowLayout(QLayout):
     def __init__(self, parent=None, margin=0, spacing=-1):
         super(QFlowLayout, self).__init__(parent)
         self.margin = margin
 
         if parent is not None:
-            self.setContentsMargins(margin, margin, margin, margin)
+            self.setMargin(margin)
 
         self.setSpacing(spacing)
 
@@ -82,72 +70,31 @@ class QFlowLayout(QLayout):
         x = rect.x()
         y = rect.y()
         lineHeight = 0
-        # SC hacks. I am assuming we are a grid, and all spaceX/spaceY is
-        # the same. So we only do this once.
-
-        # Find first visible item
-        item = None
-        for i in self.itemList:
-            if i.widget().isVisible():
-                item = i
-                break
-        if not item:
-            return 0
-        wid = item.widget()
-        spaceX = self.spacing() + wid.style().layoutSpacing(
-            QSizePolicy.PushButton,
-            QSizePolicy.PushButton,
-            QtCore.Qt.Horizontal)
-
-        spaceY = self.spacing() + wid.style().layoutSpacing(
-            QSizePolicy.PushButton,
-            QSizePolicy.PushButton,
-            QtCore.Qt.Vertical)
-
-        itemSize = item.sizeHint()
-        itemWidth = itemSize.width()
-        itemHeight = itemSize.height()
 
         for item in self.itemList:
-            if not item.widget().isVisible():
-                continue
+            wid = item.widget()
+            spaceX = self.spacing() + wid.style().layoutSpacing(
+                QSizePolicy.PushButton,
+                QSizePolicy.PushButton,
+                QtCore.Qt.Horizontal)
 
-            nextX = x + itemWidth + spaceX
+            spaceY = self.spacing() + wid.style().layoutSpacing(
+                QSizePolicy.PushButton,
+                QSizePolicy.PushButton,
+                QtCore.Qt.Vertical)
+
+            nextX = x + item.sizeHint().width() + spaceX
             if nextX - spaceX > rect.right() and lineHeight > 0:
                 x = rect.x()
                 y = y + lineHeight + spaceY
-                nextX = x + itemWidth + spaceX
+                nextX = x + item.sizeHint().width() + spaceX
                 lineHeight = 0
 
             if not testOnly:
                 item.setGeometry(
-                    QtCore.QRect(QtCore.QPoint(x, y), itemSize))
+                    QtCore.QRect(QtCore.QPoint(x, y), item.sizeHint()))
 
             x = nextX
-            lineHeight = max(lineHeight, itemHeight)
+            lineHeight = max(lineHeight, item.sizeHint().height())
 
         return y + lineHeight - rect.y()
-
-
-if __name__ == '__main__':
-
-    import sys
-
-    class Window(QWidget):
-        def __init__(self):
-            super(Window, self).__init__()
-
-            flowLayout = QFlowLayout()
-            flowLayout.addWidget(QPushButton("Short"))
-            flowLayout.addWidget(QPushButton("Longer"))
-            flowLayout.addWidget(QPushButton("Different text"))
-            flowLayout.addWidget(QPushButton("More text"))
-            flowLayout.addWidget(QPushButton("Even longer button text"))
-            self.setLayout(flowLayout)
-
-            self.setWindowTitle("Flow Layout")
-
-    app = QApplication(sys.argv)
-    mainWin = Window()
-    mainWin.show()
-    sys.exit(app.exec_())

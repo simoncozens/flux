@@ -11,11 +11,10 @@ from PyQt5.QtWidgets import (
     QDialogButtonBox,
     QScrollArea,
     QGridLayout,
-    QScrollArea,
-     QStyle,
+    QStyle,
 
 )
-from Flux.ThirdParty.QFlowLayout import QFlowLayout
+from Flux.ThirdParty.QFlowGridLayout import QFlowGridLayout
 from fontFeatures.shaperLib.Buffer import Buffer
 from Flux.UI.qbufferrenderer import QBufferRenderer
 from PyQt5.QtCore import Qt, pyqtSignal, QStringListModel, QMargins
@@ -103,7 +102,7 @@ class QGlyphPicker(QDialog):
         self.project = project
         self.selected = None
         v_box_1 = QVBoxLayout()
-        self.qgrid =  QFlowLayout()
+        self.qgrid =  QFlowGridLayout()
 
         self.qgridWidget = QWidget()
         self.qgridWidget.setLayout(self.qgrid)
