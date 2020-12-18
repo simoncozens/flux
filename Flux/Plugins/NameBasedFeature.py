@@ -66,6 +66,22 @@ class SlashZero(NameBasedFeature):
     feature = "zero"
     name = "slash zero"
 
+class StandardLigature(NameBasedFeature):
+    glyphSuffixRE = ".liga|^fi$|^fl$|^f_f(_[il])?$"
+    feature = "liga"
+    name = "standard ligatures"
+
+    def apply(self):
+        right = self.matches()
+        routine = fontFeatures.Routine(name=self.name.title().replace(" ", ""))
+        for r in right:
+            left = r.replace(".liga","").split("_")
+            if r == "fl" or r == "fi":
+                left = list(r)
+            if all(l in self.glyphnames for l in left) and r in self.glyphnames:
+                routine.addRule(fontFeatures.Substitution([ [l] for l in left], [[r]]))
+        self.project.fontfeatures.routines.extend([routine])
+        self.project.fontfeatures.addFeature(self.feature, [routine])
 
 class SmallCaps(NameBasedFeature):
     glyphSuffixRE = ".sc"
@@ -84,7 +100,7 @@ class CapToSmallCaps(NameBasedFeature):
 
 
 class Dialog(FluxPlugin):
-    tests = [SlashZero, SmallCaps, CapToSmallCaps]
+    tests = [SlashZero, SmallCaps, CapToSmallCaps, StandardLigature]
 
     def createForm(self):
         form = QGroupBox()
