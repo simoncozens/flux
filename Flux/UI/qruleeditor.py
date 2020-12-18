@@ -21,7 +21,7 @@ from fontFeatures.shaperLib.Shaper import Shaper
 from fontFeatures.shaperLib.Buffer import Buffer
 from .qbufferrenderer import QBufferRenderer
 from .qglyphname import QGlyphName
-from fontFeatures import Positioning, ValueRecord, Substitution, Chaining, Rule
+from fontFeatures import Positioning, ValueRecord, Substitution, Chaining, Rule, Routine
 import sys
 import darkdetect
 
@@ -460,10 +460,11 @@ class QRuleEditor(QDialog):
         shaper = Shaper(self.project.fontfeatures, self.project.font)
 
         shaper.execute(buf,features = self.makeShaperFeatureArray())
+        routine = Routine(rules=[self.rule])
         if before_after == "after" and self.rule:
             buf.clear_mask() # XXX
             try:
-                self.rule.apply_to_buffer(buf)
+                routine.apply_to_buffer(buf)
             except Exception as e:
                 print("Couldn't shape: "+str(e))
         return buf
