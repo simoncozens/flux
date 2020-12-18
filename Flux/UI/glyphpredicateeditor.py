@@ -141,7 +141,10 @@ class GlyphClassPredicate(QHBoxLayout):
           elif a["comparator"] == "ends":
             self.matches = [x for x in self.allGlyphs if x.endswith(a["value"])]
           elif a["comparator"] == "matches":
-            self.matches = [x for x in self.allGlyphs if re.search(a["value"],x)]
+            try:
+                self.matches = [x for x in self.allGlyphs if re.search(a["value"],x)]
+            except Exception as e:
+                self.matches = []
         if "predicate" in a:
           self.matches = []
           try:
