@@ -185,6 +185,8 @@ class FluxEditor(QSplitter):
             self.setWindowModified(False)
 
     def file_save(self):
+        if not self.project.filename:
+            return self.file_save_as()
         self.project.save(self.project.filename)
         QToaster.showMessage(self, "Saved successfully", desktop=True)
         self.setWindowModified(False)
