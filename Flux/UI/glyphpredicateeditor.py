@@ -20,18 +20,98 @@ PREDICATE_TYPES = {
   "Has anchor": {"textbox": True, "comparator": False}
 }
 
-class GlyphClassPredicate(QHBoxLayout):
+class GlyphClassPredicate:
+    def __init__(self, predicate_dict = {}):
+        self.comparator = None
+        self.combiner = None
+        self.value = None
+        self.metric = None
+        if "type" in predicate_dict:
+          self.type = predicate_dict["type"]
+        if "comparator" in predicate_dict:
+            self.comparator = predicate_dict["comparator"]
+        if "value" in predicate_dict:
+            self.value = predicate_dict["value"]
+        if "metric" in predicate_dict: # Metric, really
+            self.metric = predicate_dict["metric"]
+        if "combiner" in predicate_dict:
+            self.combiner = predicate_dict["combiner"]
+
+    def test(self, glyphset, font, infocache):
+        if self.type == "Name":
+          # print(self.comparator, self.value)
+          if self.comparator == "begins":
+            self.matches = [x for x in glyphset if x.startswith(self.value)]
+          elif self.comparator == "ends":
+            self.matches = [x for x in glyphset if x.endswith(self.value)]
+          elif self.comparator == "matches":
+            try:
+                matches = [x for x in glyphset if re.search(self.value,x)]
+            except Exception as e:
+                matches = []
+
+        # XXX HasAnchor
+        # XXX Is member of
+        # XXX Is Category
+
+        if self.metric:
+          matches = []
+          try:
+            for g in glyphset:
+              if g not in infocache:
+                infocache[g] = { "metrics": get_glyph_metrics(font, g) }
+
+              got = infocache[g]["metrics"][self.type]
+              expected, comp = int(self.value), self.comparator
+              if (comp == ">" and got > expected) or (comp == "<" and got < expected) or (comp == "=" and got == expected) or (comp == "<=" and got <= expected) or (comp == ">=" and got >= expected):
+                  matches.append(g)
+          except Exception as e:
+            print(e)
+            pass
+
+        return matches
+
+    def to_dict(self):
+        d = { "type": self.type }
+        if self.comparator:
+          d["comparator"] = self.comparator
+        if self.combiner:
+          d["combiner"] = self.combiner
+        if self.value is not None:
+          d["value"] = self.value
+        if self.metric:
+          d["metric"] = self.metric
+        return d
+
+class GlyphClassPredicateTester:
+    def __init__(self, project):
+        self.project = project
+        self.infocache = {}
+        self.allGlyphs = self.project.font.keys()
+
+    def test_all(self, predicates):
+        matches = self.allGlyphs
+        if len(predicates) > 0:
+          matches = predicates[0].test(matches, self.project.font, self.infocache)
+        for p in predicates[1:]:
+          if p.combiner == "and":
+            # Narrow down existing set
+            matches = p.test(matches, self.project.font, self.infocache)
+          else:
+            thisPredicateMatches = p.test(self.allGlyphs, self.project.font, self.infocache)
+            matches = set(matches) | set(thisPredicateMatches)
+        return matches
+
+class GlyphClassPredicateRow(QHBoxLayout):
     changed = pyqtSignal()
 
-    def __init__(self, editor, arguments = {}):
+    def __init__(self, editor, predicate = None):
         super(QHBoxLayout, self).__init__()
         # print("Initializing with ", arguments)
         self.editor = editor
         self.project = editor.project
         self.matches = []
-        self.allGlyphs = self.project.font.keys()
-        self.metrics = { g: get_glyph_metrics(self.project.font, g) for g in self.allGlyphs }
-        self.arguments = arguments
+        self.predicate = predicate
         self.predicateType = QComboBox()
         for n in PREDICATE_TYPES.keys():
           self.predicateType.addItem(n)
@@ -48,56 +128,55 @@ class GlyphClassPredicate(QHBoxLayout):
         self.reset()
 
     def maybeChangeType(self):
-      if self.predicateType.currentText() != self.arguments["type"]:
-        self.arguments["type"] = self.predicateType.currentText()
+      if self.predicateType.currentText() != self.predicate.type:
+        self.predicate.type = self.predicateType.currentText()
         self.reset()
-
 
     def reset(self): # Call this when the type changes
         for i in reversed(range(3,self.count())): # We keep the combo boxes
           if self.itemAt(i).widget():
             self.itemAt(i).widget().setParent(None)
 
-        typeIx = self.predicateType.findText(self.arguments["type"])
+        typeIx = self.predicateType.findText(self.predicate.type)
         if typeIx != 1:
           self.predicateType.setCurrentIndex(typeIx)
         # print(self.arguments["type"])
-        if self.arguments["type"] == "Name":
+        if self.predicate.type == "Name":
           self.nameCB = QComboBox()
           self.nameCB.addItems(["begins","ends","matches"])
-          if "comparator" in self.arguments:
-            ix = self.nameCB.findText(self.arguments["comparator"])
+          if self.predicate.comparator:
+            ix = self.nameCB.findText(self.predicate.comparator)
             if ix != 1:
               self.nameCB.setCurrentIndex(ix)
           self.addWidget(self.nameCB)
           self.nameCB.currentIndexChanged.connect(self.changed.emit)
 
-        if self.arguments["type"] == "Is category":
+        if self.predicate.type == "Is category":
           self.categoryCB = QComboBox()
           self.categoryCB.addItems(["base","ligature","mark","component"])
-          if "category" in self.arguments:
-            ix = self.categoryCB.findText(self.arguments["category"])
+          if self.arguments.value:
+            ix = self.categoryCB.findText(self.predicate.value)
             if ix != 1:
               self.categoryCB.setCurrentIndex(ix)
 
           self.addWidget(self.categoryCB)
           self.categoryCB.currentIndexChanged.connect(self.changed.emit)
 
-        if PREDICATE_TYPES[self.arguments["type"]]["comparator"]:
+        if PREDICATE_TYPES[self.predicate.type]["comparator"]:
           self.comparator = QComboBox()
           self.comparator.addItems(["<","<=","=", ">=", ">"])
-          if "comparator" in self.arguments:
-            ix = self.comparator.findText(self.arguments["comparator"])
+          if self.predicate.comparator:
+            ix = self.comparator.findText(self.predicate.comparator)
             if ix != 1:
               self.comparator.setCurrentIndex(ix)
           self.comparator.currentIndexChanged.connect(self.changed.emit)
           self.addWidget(self.comparator)
 
-        if PREDICATE_TYPES[self.arguments["type"]]["textbox"]:
+        if PREDICATE_TYPES[self.predicate.type]["textbox"]:
           self.textBox = QLineEdit()
-          if "value" in self.arguments:
-            self.textBox.setText(self.arguments["value"])
-          elif PREDICATE_TYPES[self.arguments["type"]]["comparator"]:
+          if self.predicate.value:
+            self.textBox.setText(self.predicate.value)
+          elif PREDICATE_TYPES[self.predicate.type]["comparator"]:
             self.textBox.setText("200")
           self.textBox.textChanged.connect(self.changed.emit)
           self.addWidget(self.textBox)
@@ -110,54 +189,27 @@ class GlyphClassPredicate(QHBoxLayout):
         self.changed.emit()
 
     def serialize(self):
-        self.arguments = {}
-        self.arguments["type"] = self.predicateType.currentText()
-        self.arguments["combiner"] = self.combiner.currentText()
-        if PREDICATE_TYPES[self.arguments["type"]]["textbox"]:
-          self.arguments["value"] = self.textBox.text()
-        if self.arguments["type"] == "Name":
-          self.arguments["comparator"] = self.nameCB.currentText()
-        elif self.arguments["type"] == "Is member of":
-          #self.arguments["class"] = self.classCB.currentText()
+        self.predicate = GlyphClassPredicate()
+        self.predicate.type = self.predicateType.currentText()
+        self.predicate.combiner = self.combiner.currentText()
+        if PREDICATE_TYPES[self.predicate.type]["textbox"]:
+          self.predicate.value = self.textBox.text()
+        if self.predicate.type == "Name":
+          self.predicate.comparator = self.nameCB.currentText()
+        elif self.predicate.type == "Is member of":
+          #self.predicate.class = self.classCB.currentText()
           pass
-        elif self.arguments["type"] == "Has anchor":
-          #self.arguments["anchor"] = self.anchorCB.currentText()
+        elif self.predicate.type == "Has anchor":
+          #self.predicate.anchor = self.anchorCB.currentText()
           pass
-        elif self.arguments["type"] == "Is category":
-          self.arguments["category"] = self.categoryCB.currentText()
+        elif self.predicate.type == "Is category":
+          self.predicate.category = self.categoryCB.currentText()
           pass
 
-        if PREDICATE_TYPES[self.arguments["type"]]["comparator"]:
-          self.arguments["predicate"] = self.arguments["type"]
-          self.arguments["comparator"] = self.comparator.currentText()
+        if PREDICATE_TYPES[self.predicate.type]["comparator"]:
+          self.predicate.metric = self.predicate.type
+          self.predicate.comparator = self.comparator.currentText()
         # print(self.arguments)
-
-    def test(self):
-        a = self.arguments
-        if a["type"] == "Name":
-          # print(a["comparator"], a["value"])
-          if a["comparator"] == "begins":
-            self.matches = [x for x in self.allGlyphs if x.startswith(a["value"])]
-          elif a["comparator"] == "ends":
-            self.matches = [x for x in self.allGlyphs if x.endswith(a["value"])]
-          elif a["comparator"] == "matches":
-            try:
-                self.matches = [x for x in self.allGlyphs if re.search(a["value"],x)]
-            except Exception as e:
-                self.matches = []
-        if "predicate" in a:
-          self.matches = []
-          try:
-            for g in self.allGlyphs:
-              got = self.metrics[g][a["predicate"]]
-              expected, comp = int(a["value"]), a["comparator"]
-              if (comp == ">" and got > expected) or (comp == "<" and got < expected) or (comp == "=" and got == expected) or (comp == "<=" and got <= expected) or (comp == ">=" and got >= expected):
-                  self.matches.append(g)
-          except Exception as e:
-            print(e)
-            pass
-        # print(a)
-        # print(self.matches)
 
 class AutomatedGlyphClassDialog(QDialog):
   def __init__(self, font, predicates = []):
@@ -181,17 +233,18 @@ class AutomatedGlyphClassDialog(QDialog):
   def update(self):
     self.qte.setText(" ".join(sorted(self.gpe.matches)))
 
-  def getPredicates(self):
-    return self.gpe.predicates
+  def getPredicateRows(self):
+    return self.gpe.predicateRows
 
   @staticmethod
   def editDefinition(project, predicates = []):
-      dialog = AutomatedGlyphClassDialog(project, predicates)
+      dialog = AutomatedGlyphClassDialog(project, [ GlyphClassPredicate(p) for p in predicates])
       result = dialog.exec_()
-      predicates = dialog.getPredicates()
-      for x in predicates:
+      predicaterows = dialog.getPredicateRows()
+      for x in predicaterows:
         x.serialize()
-      predicates = [ x.arguments for x in predicates ]
+      predicates = [ x.predicate.to_dict() for x in predicaterows ]
+      print(predicates)
       return (predicates, result == QDialog.Accepted)
 
 class GlyphClassPredicateEditor(QVBoxLayout):
@@ -202,33 +255,24 @@ class GlyphClassPredicateEditor(QVBoxLayout):
         self.project = project
         predicateItems = []
         if len(existingpredicates) == 0:
-          predicateItems.append(GlyphClassPredicate(self, {"type": "Name"}))
+          predicateItems.append(GlyphClassPredicateRow(self, GlyphClassPredicate({"type": "Name"})))
         for p in existingpredicates:
-          predicateItems.append(GlyphClassPredicate(self, p))
+          predicateItems.append(GlyphClassPredicateRow(self, p))
         for p in predicateItems:
           self.addLayout(p)
         predicateItems[-1].minus.setEnabled(False)
         predicateItems[0].combiner.hide()
         self.matches = []
+        self.tester = GlyphClassPredicateTester(self.project)
         self.changed.connect(self.testAll)
         self.testAll()
 
     def addRow(self):
-        self.addLayout(GlyphClassPredicate(self, {"type": "Name"}))
+        self.addLayout(GlyphClassPredicateRow(self, GlyphClassPredicate({"type": "Name"})))
 
     def testAll(self):
-        self.matches = []
-        for i in range(self.count()):
-          p = self.itemAt(i)
-          p.test()
-          if i > 0:
-            if p.arguments["combiner"] == "and":
-              self.matches = set(self.matches) & set(p.matches)
-            else:
-              self.matches = set(self.matches) | set(p.matches)
-          else:
-            self.matches = p.matches
+        self.matches = self.tester.test_all([x.predicate for x in self.predicateRows])
 
     @property
-    def predicates(self):
+    def predicateRows(self):
       return [self.itemAt(i) for i in range(self.count())]

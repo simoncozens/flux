@@ -8,7 +8,7 @@ from PyQt5.QtCore import (
     QRect
 )
 from PyQt5.QtWidgets import QTreeView, QMenu, QStyledItemDelegate, QLineEdit
-from .glyphpredicateeditor import AutomatedGlyphClassDialog
+from .glyphpredicateeditor import AutomatedGlyphClassDialog, GlyphClassPredicateTester, GlyphClassPredicate
 from .qglyphname import QGlyphName
 
 class GlyphNameDelegate(QStyledItemDelegate):
@@ -47,9 +47,11 @@ class GlyphNameDelegate(QStyledItemDelegate):
         model.setData(index,editor.text())
 
 class GlyphClassModel(QAbstractTableModel):
-    def __init__(self, glyphclasses={}, parent=None):
+    def __init__(self, project, parent=None):
         super(GlyphClassModel, self).__init__(parent)
-        self.glyphclasses = glyphclasses
+        self.project = project
+        self.tester = GlyphClassPredicateTester(self.project)
+        self.glyphclasses = project.glyphclasses
         self.order = list(sorted(self.glyphclasses.keys()))
 
     def rowCount(self, index=QModelIndex()):
@@ -89,9 +91,10 @@ class GlyphClassModel(QAbstractTableModel):
                 return " ".join(self.glyphclasses[name]["contents"])
             else:
                 return "<computed>"
-        if role == Qt.DecorationRole:
+        if role == Qt.ToolTipRole:
             if index.column() == 1 and self.isAutomatic(index):
-                return "<computed>"
+                predicates = [GlyphClassPredicate(d) for d in self.getPredicates(index)]
+                return " ".join(self.tester.test_all(predicates))
         return None
 
 
@@ -192,7 +195,7 @@ class GlyphClassList(QTreeView):
     def __init__(self, project):
         super(QTreeView, self).__init__()
         self.project = project
-        self.setModel(GlyphClassModel(project.glyphclasses))
+        self.setModel(GlyphClassModel(self.project))
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.setItemDelegate(GlyphNameDelegate(self))
         self.setDragEnabled(True)
