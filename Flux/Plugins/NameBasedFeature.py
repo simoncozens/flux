@@ -18,22 +18,6 @@ import fontFeatures
 plugin_name = "Name-Based Features"
 
 
-class REValidator(QValidator):
-    def __init__(self):
-        super().__init__()
-
-    def validate(self, s, pos):
-        try:
-            re.compile(s)
-        except Exception as e:
-            return (QValidator.Invalid, s, pos)
-        return (QValidator.Acceptable, s, pos)
-
-    def fixup(self, s):
-        # Trim multiple spaces?
-        pass
-
-
 class NameBasedFeature:
     def __init__(self, project):
         self.project = project

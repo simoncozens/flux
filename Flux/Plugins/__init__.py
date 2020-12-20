@@ -10,11 +10,11 @@ class FluxPlugin(QDialog):
         self.feeparser = FeeParser(project.font)
         self.feeparser.fontfeatures = self.project.fontfeatures
         self.setWindowTitle(sys.modules[self.__module__].plugin_name)
-        self.form = self.createForm()
         QBtn = QDialogButtonBox.Ok | QDialogButtonBox.Cancel
         self.buttonBox = QDialogButtonBox(QBtn)
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
+        self.form = self.createForm()
         self.layout = QVBoxLayout()
         self.layout.addWidget(self.form)
         self.layout.addWidget(self.buttonBox)

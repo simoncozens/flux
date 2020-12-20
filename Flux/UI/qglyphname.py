@@ -214,6 +214,7 @@ class QGlyphName(QWidget):
             self.completer = QCompleter()
         self.completer.setModel(self.completermodel)
         self.glyphline.setCompleter(self.completer)
+        self.glyphline.textChanged.connect(lambda: self.changed.emit())
         self.glyphline.owner = self
         if self.allow_classes:
             self.setAcceptDrops(True)
@@ -236,7 +237,8 @@ class QGlyphName(QWidget):
         return self.glyphline.text()
 
     def setText(self, f):
-        return self.glyphline.setText(f)
+        g = self.glyphline.setText(f)
+        return g
 
     def dropEvent(self, event):
         data = event.mimeData()
@@ -244,11 +246,14 @@ class QGlyphName(QWidget):
             event.reject()
             return
         self.appendText(data.text())
+        self.changed.emit()
         if not self.multiple:
             self.glyphline.returnPressed.emit()
 
     @property
     def returnPressed(self):
+        self.changed.emit()
+        print("Emit changed")
         return self.glyphline.returnPressed
 
     def launchGlyphPicker(self):
