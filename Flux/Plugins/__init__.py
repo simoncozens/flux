@@ -1,6 +1,6 @@
 from fontFeatures.feeLib import FeeParser
 from PyQt5.QtWidgets import QLabel, QDialog, QCompleter, QDialogButtonBox, QVBoxLayout
-from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot, QStringListModel
+from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot, QStringListModel, QSettings
 import sys
 
 class FluxPlugin(QDialog):
@@ -19,6 +19,16 @@ class FluxPlugin(QDialog):
         self.layout.addWidget(self.form)
         self.layout.addWidget(self.buttonBox)
         self.setLayout(self.layout)
+        self.settings = QSettings()
+        geometry = self.settings.value('plugin%sgeometry' % self.__class__.__name__, '')
+        if geometry:
+            self.restoreGeometry(geometry)
 
     def glyphSelector(self, text):
         return self.feeparser.parser(text).glyphselector()
+
+    def accept(self):
+        geometry = self.saveGeometry()
+        self.settings.setValue('plugin%sgeometry' % self.__class__.__name__, geometry)
+        print("Saved geometry")
+        return super().accept()
