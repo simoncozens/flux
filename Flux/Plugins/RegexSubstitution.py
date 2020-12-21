@@ -114,7 +114,10 @@ class Dialog(FluxPlugin):
         for g in self.glyphnames:
             if not re.search(p["filter"], g):
                 continue
-            new = re.sub(p["match"], p["replace"], g)
+            try:
+                new = re.sub(p["match"], p["replace"], g)
+            except:
+                continue
             if new not in self.glyphnames:
                 continue
             sub = fontFeatures.Substitution( [[g]], [[new]])
