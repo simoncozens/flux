@@ -180,12 +180,14 @@ class FeatureList(QTreeView):
         # Check if routine is in use
         self.model().removeRowWithIndex(self.selectedIndexes()[0])
         self.parent.editor.setWindowModified(True)
+        self.parent.editor.update()
 
     @pyqtSlot()
     def deleteRoutine(self):
         # Check if routine is in use
         self.model().removeRowWithIndex(self.selectedIndexes()[0])
         self.parent.editor.setWindowModified(True)
+        self.parent.editor.update()
 
 
 class FeatureListModel(QAbstractItemModel):
