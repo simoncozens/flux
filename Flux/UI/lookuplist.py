@@ -7,52 +7,103 @@ from PyQt5.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
     QDialog,
-    QDialogButtonBox
+    QDialogButtonBox,
+    QLabel,
+    QLineEdit,
 )
-from PyQt5.QtCore import QAbstractItemModel, QItemSelectionModel, QModelIndex, Qt, pyqtSlot
+from PyQt5.QtCore import (
+    QAbstractItemModel,
+    QItemSelectionModel,
+    QModelIndex,
+    Qt,
+    pyqtSlot,
+)
+from PyQt5.QtGui import QValidator
 import sys
-from fontFeatures import Routine, Attachment, Substitution, Positioning, Chaining, ValueRecord
+from fontFeatures import (
+    Routine,
+    Attachment,
+    Substitution,
+    Positioning,
+    Chaining,
+    ValueRecord,
+)
 from Flux.project import FluxProject
+import re
+
+
+class FeatureValidator(QValidator):
+    def validate(self, s, pos):
+        if re.search(r"[^a-z0-9]", s) or len(s) > 4:
+            return (QValidator.Invalid, s, pos)
+        if len(s) < 4:
+            return (QValidator.Intermediate, s, pos)
+        return (QValidator.Acceptable, s, pos)
+
 
 class LookupFlagEditor(QDialog):
 
-  simpleChecks = [
-    (0x02, "Ignore Base Glyphs"),
-    (0x08, "Ignore Mark Glyphs"),
-    (0x04, "Ignore Ligatures"),
-    (0x01, "Cursive last glyph on baseline"),
-  ]
+    simpleChecks = [
+        (0x02, "Ignore Base Glyphs"),
+        (0x08, "Ignore Mark Glyphs"),
+        (0x04, "Ignore Ligatures"),
+        (0x01, "Cursive last glyph on baseline"),
+    ]
 
-  def __init__(self, routine):
-    super(QDialog, self).__init__()
-    self.checkboxes = []
-    self.routine = routine
-    self.flags = routine.flags
-    layout = QVBoxLayout()
-    for flagbit, description in self.simpleChecks:
-        cb = QCheckBox(description)
-        cb.flagbit = flagbit
-        cb.stateChanged.connect(self.toggleBit)
-        if routine.flags & flagbit:
-            cb.setCheckState(Qt.Checked)
-        layout.addWidget(cb)
+    def __init__(self, routine):
+        super(QDialog, self).__init__()
+        self.checkboxes = []
+        self.routine = routine
+        self.flags = routine.flags
+        layout = QVBoxLayout()
+        for flagbit, description in self.simpleChecks:
+            cb = QCheckBox(description)
+            cb.flagbit = flagbit
+            cb.stateChanged.connect(self.toggleBit)
+            if routine.flags & flagbit:
+                cb.setCheckState(Qt.Checked)
+            layout.addWidget(cb)
 
-    buttons = QDialogButtonBox(
-        QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
-        Qt.Horizontal, self)
-    buttons.accepted.connect(self.accept)
-    buttons.rejected.connect(self.reject)
-    layout.addWidget(buttons)
-    self.setLayout(layout)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self
+        )
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+        self.setLayout(layout)
 
-  @pyqtSlot()
-  def toggleBit(self):
-    cb = self.sender()
-    self.flags = self.flags ^ cb.flagbit
+    @pyqtSlot()
+    def toggleBit(self):
+        cb = self.sender()
+        self.flags = self.flags ^ cb.flagbit
 
-  def accept(self):
-    self.routine.flags = self.flags
-    super().accept()
+    def accept(self):
+        self.routine.flags = self.flags
+        super().accept()
+
+
+class AddToFeatureDialog(QDialog):
+    def __init__(self):
+        super(QDialog, self).__init__()
+        self.featureEdit = QLineEdit()
+        self.featureEdit.setValidator(FeatureValidator())
+        layout = QVBoxLayout()
+        layout.addWidget(QLabel("Add this routine to feature..."))
+        layout.addWidget(self.featureEdit)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self
+        )
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+        self.setLayout(layout)
+
+    def accept(self):
+        if not self.featureEdit.hasAcceptableInput():
+            return
+        self.feature = self.featureEdit.text()
+        return super().accept()
+
 
 class LookupList(QTreeView):
     def __init__(self, project, parent):
@@ -69,15 +120,15 @@ class LookupList(QTreeView):
         self.doubleClicked.connect(self.doubleClickHandler)
 
     def highlight(self, routineName):
-        routineNames= [x.name for x in self.project.fontfeatures.routines]
+        routineNames = [x.name for x in self.project.fontfeatures.routines]
         if not routineName in routineNames:
             return
         self.collapseAll()
         routineRow = routineNames.index(routineName)
         if routineRow:
-            self.scrollTo(self.model().index(routineRow+1,0))
-            self.setCurrentIndex(self.model().index(routineRow,0))
-            self.setExpanded(self.model().index(routineRow,0),True)
+            self.scrollTo(self.model().index(routineRow + 1, 0))
+            self.setCurrentIndex(self.model().index(routineRow, 0))
+            self.setExpanded(self.model().index(routineRow, 0), True)
         pass
 
     def update(self, index=QModelIndex()):
@@ -102,6 +153,7 @@ class LookupList(QTreeView):
         if len(indexes) > 0:
             if isinstance(indexes[0].internalPointer(), Routine):
                 menu.addAction("Delete routine", self.deleteItem)
+                menu.addAction("Add to feature...", self.addToFeature)
                 menu.addAction("Add substitution rule", self.addSubRule)
                 menu.addAction("Add positioning rule", self.addPosRule)
                 menu.addAction("Add attachment rule", self.addAttRule)
@@ -113,23 +165,37 @@ class LookupList(QTreeView):
 
     @pyqtSlot()
     def addSubRule(self):
-        self.model().addRule(self.selectedIndexes()[0], Substitution([[]],[[]]))
+        self.model().addRule(self.selectedIndexes()[0], Substitution([[]], [[]]))
         self.parent.editor.setWindowModified(True)
 
     @pyqtSlot()
     def addPosRule(self):
-        self.model().addRule(self.selectedIndexes()[0], Positioning([[]],[ValueRecord()]))
+        self.model().addRule(
+            self.selectedIndexes()[0], Positioning([[]], [ValueRecord()])
+        )
         self.parent.editor.setWindowModified(True)
 
     @pyqtSlot()
     def addChainRule(self):
-        self.model().addRule(self.selectedIndexes()[0], Chaining([[]],lookups= [[]]))
+        self.model().addRule(self.selectedIndexes()[0], Chaining([[]], lookups=[[]]))
         self.parent.editor.setWindowModified(True)
 
     @pyqtSlot()
     def addAttRule(self):
         self.model().addRule(self.selectedIndexes()[0], Attachment("", ""))
         self.parent.editor.setWindowModified(True)
+
+    @pyqtSlot()
+    def addToFeature(self):
+        index = self.selectedIndexes()[0]
+        routine = index.internalPointer()
+        dialog = AddToFeatureDialog()
+        result = dialog.exec_()
+        if result:
+            self.project.fontfeatures.addFeature(dialog.feature, [routine])
+            self.model().dataChanged.emit(index, index)
+            self.parent.editor.setWindowModified(True)
+            self.parent.editor.update()
 
     @pyqtSlot()
     def setFlags(self):
@@ -145,17 +211,16 @@ class LookupList(QTreeView):
         if isinstance(index.internalPointer(), Routine):
             return
         if isinstance(index.internalPointer(), Attachment):
-            self.parent.editor.showAttachmentEditor(index.internalPointer(), index=index)
+            self.parent.editor.showAttachmentEditor(
+                index.internalPointer(), index=index
+            )
             return
         self.parent.editor.showRuleEditor(index.internalPointer(), index=index)
 
     @pyqtSlot()
     def addRoutine(self):
         index = self.model().appendRow()
-        self.selectionModel().select(
-            index,
-            QItemSelectionModel.ClearAndSelect
-        )
+        self.selectionModel().select(index, QItemSelectionModel.ClearAndSelect)
         self.edit(index)
         self.parent.editor.setWindowModified(True)
 
@@ -165,8 +230,9 @@ class LookupList(QTreeView):
         self.model().removeRows(self.selectedIndexes())
         self.parent.editor.setWindowModified(True)
 
+
 class LookupListModel(QAbstractItemModel):
-    def __init__(self, proj, parent = None):
+    def __init__(self, proj, parent=None):
         super(LookupListModel, self).__init__(parent)
         self.project = proj
 
@@ -214,7 +280,9 @@ class LookupListModel(QAbstractItemModel):
         if role != Qt.EditRole:
             return False
 
-        if index.isValid() and 0 <= index.row() < len(self.project.fontfeatures.routines):
+        if index.isValid() and 0 <= index.row() < len(
+            self.project.fontfeatures.routines
+        ):
             self.project.fontfeatures.routines[index.row()].name = value
             # self.dataChanged.emit(index, index)
             return True
@@ -254,16 +322,19 @@ class LookupListModel(QAbstractItemModel):
             if self.indexIsRoutine(index):
                 return item.name + self.describeFlags(item)
             elif isinstance(item, Attachment):
-                return f'Attach {item.mark_name or "Nothing"} to {item.base_name or "Nothing"}' + self.describeFlags(item)
+                return (
+                    f'Attach {item.mark_name or "Nothing"} to {item.base_name or "Nothing"}'
+                    + self.describeFlags(item)
+                )
             else:
                 fea = item.asFea() or "<New %s Rule>" % item.__class__.__name__
                 return fea.split("\n")[0]
         return None
 
     def flags(self, index):
-        """ Set the item flags at the given index. Seems like we're
-            implementing this function just to see how it's done, as we
-            manually adjust each tableView to have NoEditTriggers.
+        """Set the item flags at the given index. Seems like we're
+        implementing this function just to see how it's done, as we
+        manually adjust each tableView to have NoEditTriggers.
         """
         if not index.isValid():
             return Qt.ItemIsDropEnabled
@@ -276,13 +347,13 @@ class LookupListModel(QAbstractItemModel):
         """ Insert a row into the model. """
         self.beginInsertRows(QModelIndex(), position, position + rows - 1)
 
-        self.project.fontfeatures.routines.append(Routine(name="",rules=[]))
+        self.project.fontfeatures.routines.append(Routine(name="", rules=[]))
         self.endInsertRows()
         return True
 
     def appendRow(self):
         self.insertRows(len(self.project.fontfeatures.routines))
-        return self.index(len(self.project.fontfeatures.routines)-1, 0)
+        return self.index(len(self.project.fontfeatures.routines) - 1, 0)
 
     def removeRows(self, indexes):
         for i in indexes:
@@ -306,6 +377,7 @@ class LookupListModel(QAbstractItemModel):
         self.endInsertRows()
         return True
 
+
 if __name__ == "__main__":
     from fluxproject import FluxProject
 
@@ -328,4 +400,3 @@ if __name__ == "__main__":
 
     w.show()
     sys.exit(app.exec_())
-
