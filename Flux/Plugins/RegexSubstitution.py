@@ -18,6 +18,8 @@ from Flux.UI.qglyphname import QGlyphName
 import re
 import fontFeatures
 from PyQt5.QtCore import Qt
+import sys
+from Flux.computedroutine import ComputedRoutine
 
 
 plugin_name = "Regular Expression Substitution"
@@ -109,24 +111,10 @@ class Dialog(FluxPlugin):
         if not self.filter.hasAcceptableInput() or not self.match.hasAcceptableInput():
             return
         p = self.parameters()
-        print(p)
-        self.routine = fontFeatures.Routine(name=p["routine"])
-        for g in self.glyphnames:
-            if not re.search(p["filter"], g):
-                continue
-            try:
-                new = re.sub(p["match"], p["replace"], g)
-            except:
-                continue
-            if new not in self.glyphnames:
-                continue
-            sub = fontFeatures.Substitution( [[g]], [[new]])
-            # XXX classes
-            if p["before"]:
-                sub.input = [ [glyph] for glyph in p["before"].split() ] + sub.input
-            if p["after"]:
-                sub.input.extend([ [glyph] for glyph in p["after"].split() ])
-            self.routine.addRule(sub)
+        self.routine = ComputedRoutine(name=p["routine"], parameters = p)
+        self.routine.plugin = __name__
+        self.routine.project = self.project
+        self.routine.module = sys.modules[__name__]
         self.preview.setText(self.routine.asFea())
 
 
@@ -139,3 +127,26 @@ class Dialog(FluxPlugin):
         if evt.key() == Qt.Key_Enter or evt.key() == Qt.Key_Return:
             return
         return super().keyPressEvent(evt)
+
+
+def rulesFromComputedRoutine(routine):
+    p = routine.parameters
+    glyphnames = routine.project.font.keys()
+    rules = []
+    for g in glyphnames:
+        if not re.search(p["filter"], g):
+            continue
+        try:
+            new = re.sub(p["match"], p["replace"], g)
+        except:
+            continue
+        if new not in glyphnames:
+            continue
+        sub = fontFeatures.Substitution( [[g]], [[new]])
+        # XXX classes
+        if p["before"]:
+            sub.input = [ [glyph] for glyph in p["before"].split() ] + sub.input
+        if p["after"]:
+            sub.input.extend([ [glyph] for glyph in p["after"].split() ])
+        rules.append(sub)
+    return rules

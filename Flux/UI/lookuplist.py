@@ -30,6 +30,7 @@ from fontFeatures import (
 )
 from Flux.project import FluxProject
 import re
+from Flux.ThirdParty.HTMLDelegate import HTMLDelegate
 
 
 class FeatureValidator(QValidator):
@@ -110,7 +111,8 @@ class LookupList(QTreeView):
         super(QTreeView, self).__init__()
         self.project = project
         self.parent = parent
-        self.setModel(LookupListModel(project))
+        self.setModel(LookupListModel(project, parent=self))
+        self.setItemDelegate(HTMLDelegate())
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.setDragEnabled(True)
         self.setAcceptDrops(True)
@@ -210,6 +212,8 @@ class LookupList(QTreeView):
     def doubleClickHandler(self, index):
         if isinstance(index.internalPointer(), Routine):
             return
+        if hasattr(index.internalPointer(), "computed"):
+            return
         if isinstance(index.internalPointer(), Attachment):
             self.parent.editor.showAttachmentEditor(
                 index.internalPointer(), index=index
@@ -234,6 +238,7 @@ class LookupList(QTreeView):
 class LookupListModel(QAbstractItemModel):
     def __init__(self, proj, parent=None):
         super(LookupListModel, self).__init__(parent)
+        self._parent = parent
         self.project = proj
 
     def headerData(self, section, orientation, role):
@@ -247,6 +252,7 @@ class LookupListModel(QAbstractItemModel):
         if index.isValid():
             item = index.internalPointer()
             if isinstance(item, Routine):
+                item.editor = self._parent.parent.editor
                 return len(item.rules)
         return 0
 
@@ -259,6 +265,7 @@ class LookupListModel(QAbstractItemModel):
         rule = index.internalPointer()
         # Now go find it
         for row, routine in enumerate(self.project.fontfeatures.routines):
+            routine.editor = self._parent.parent.editor
             if rule in routine.rules:
                 return self.createIndex(row, 0, routine)
         return QModelIndex()
@@ -273,6 +280,7 @@ class LookupListModel(QAbstractItemModel):
             ix = self.createIndex(row, column, self.project.fontfeatures.routines[row])
         else:
             item = index.internalPointer()
+            item.editor = self._parent.parent.editor
             ix = self.createIndex(row, column, item.rules[row])
         return ix
 
@@ -321,6 +329,8 @@ class LookupListModel(QAbstractItemModel):
             item = index.internalPointer()
             if self.indexIsRoutine(index):
                 return item.name + self.describeFlags(item)
+            elif hasattr(item, "computed"):
+                return f'<i style="color:#aaa">{item.asFea()}</i>'
             elif isinstance(item, Attachment):
                 return (
                     f'Attach {item.mark_name or "Nothing"} to {item.base_name or "Nothing"}'

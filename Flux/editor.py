@@ -79,6 +79,7 @@ class FluxEditor(QSplitter):
             if is_pkg:
                 continue
             _module = loader.find_module(module_name).load_module(module_name)
+            _module.module_name = module_name
             self.plugins[module_name] = _module
 
 
@@ -177,7 +178,7 @@ class FluxEditor(QSplitter):
             self, "Save File", filter="Flux projects (*.fluxml)"
         )
         if filename and filename[0]:
-            self.project.filename = filename
+            self.project.filename = filename[0]
             self.project.save(filename[0])
             QToaster.showMessage(self, "Saved successfully", desktop=True)
             self.setWindowTitle("Flux - %s" % (self.project.filename or "New Project"))

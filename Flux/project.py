@@ -4,6 +4,7 @@ from babelfont import Babelfont
 from fontFeatures.feaLib import FeaUnparser
 from fontTools.ttLib import TTFont
 from fontFeatures.ttLib import unparse
+from Flux.computedroutine import ComputedRoutine
 
 class FluxProject:
 
@@ -73,7 +74,11 @@ class FluxProject:
     def xmlToFontFeatures(self):
         routines = {}
         for xmlroutine in self.xml.find("routines"):
-            r = Routine.fromXML(xmlroutine)
+            if "computed" in xmlroutine.attrib:
+                r = ComputedRoutine.fromXML(xmlroutine)
+                r.project = self
+            else:
+                r = Routine.fromXML(xmlroutine)
             routines[r.name] = r
             self.fontfeatures.addRoutine(r)
         for xmlfeature in self.xml.find("features"):
