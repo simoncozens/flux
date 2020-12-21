@@ -22,6 +22,8 @@ from PyQt5.QtGui import QDrag
 import sys
 from fontFeatures import Routine
 from Flux.project import FluxProject
+from Flux.ThirdParty.HTMLDelegate import HTMLDelegate
+from Flux.constants import FEATURE_DESCRIPTIONS
 
 
 class FeatureList(QTreeView):
@@ -29,6 +31,7 @@ class FeatureList(QTreeView):
         super(QTreeView, self).__init__()
         self.project = project
         self.parent = parent
+        self.setItemDelegate(HTMLDelegate())
         self.setModel(FeatureListModel(project))
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.setSelectionBehavior(self.SelectRows)
@@ -321,7 +324,11 @@ class FeatureListModel(QAbstractItemModel):
             return None
         if role == Qt.DisplayRole or role == Qt.EditRole:
             if self.indexIsFeature(index):
-                return self.getFeatureNameAtRow(index.row())
+                featureName = self.getFeatureNameAtRow(index.row())
+                if role == Qt.EditRole:
+                    return featureName
+                featureDescription = FEATURE_DESCRIPTIONS.get(featureName, "")
+                return f'{featureName} <i style="color:#aaa">{featureDescription}</i>'
             else:
                 routine = self.getRoutine(index)
                 if routine:
