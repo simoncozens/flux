@@ -133,19 +133,19 @@ class GlyphClassModel(QAbstractTableModel):
 
     def removeRows(self, indexes):
         positions = [i.row() for i in indexes if i.column() == 0]
-        print(positions)
+        # print(positions)
         for i in reversed(sorted(positions)):
             self.removeRow(i)
 
         self.order = sorted(list(self.glyphclasses.keys()))
-        print("Computing order", self.order)
+        # print("Computing order", self.order)
 
     def removeRow(self, position, rows=1, index=QModelIndex()):
         """ Remove a row from the model. """
         self.beginRemoveRows(QModelIndex(), position, position + rows - 1)
         assert rows == 1
         del self.glyphclasses[self.order[position]]
-        print("Deleting %s" % self.order[position])
+        # print("Deleting %s" % self.order[position])
         self.endRemoveRows()
         return True
 
@@ -220,7 +220,7 @@ class GlyphClassList(QTreeView):
                 self.model().setPredicates(index, predicates)
 
     def update(self, index=QModelIndex()):
-        print(self.project.glyphclasses)
+        # print(self.project.glyphclasses)
         self.model().order = list(sorted(self.project.glyphclasses.keys()))
         if index.isValid():
             self.model().dataChanged.emit(index, index)
