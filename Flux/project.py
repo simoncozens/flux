@@ -2,9 +2,11 @@ from lxml import etree
 from fontFeatures import FontFeatures, Routine, Substitution
 from babelfont import Babelfont
 from fontFeatures.feaLib import FeaUnparser
+from fontTools.feaLib.builder import Builder
 from fontTools.ttLib import TTFont
 from fontFeatures.ttLib import unparse
 from Flux.computedroutine import ComputedRoutine
+from io import StringIO as UnicodeIO
 from Flux.UI.GlyphActions import GlyphAction
 
 class FluxProject:
@@ -174,3 +176,19 @@ class FluxProject:
                 self.fontfeatures = unparsed.ff
             except Exception as e:
                 print("Could not load feature file: %s" % e)
+
+    def saveOTF(self, filename):
+        try:
+            self.font.save(filename)
+            ttfont = TTFont(filename)
+            featurefile = UnicodeIO(self.fontfeatures.asFea())
+            builder = Builder(ttfont, featurefile)
+            catmap = { "base": 1, "ligature": 2, "mark": 3, "component": 4 }
+            for g in self.font:
+                if g.category in catmap:
+                    builder.setGlyphClass_(None, g.name, catmap[g.category])
+            builder.build()
+            ttfont.save(filename)
+        except Exception as e:
+            print(e)
+            return str(e)

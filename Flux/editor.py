@@ -226,7 +226,16 @@ class FluxEditor(QSplitter):
             QToaster.showMessage(self, "Failed to save: " + res, desktop=True)
 
     def exportOTF(self):
-        self.project.saveOTF()
+        filename = QFileDialog.getSaveFileName(
+            self, "Save File", filter="OpenType Font (*.ttf)"
+        )
+        if not filename:
+            return
+        res = self.project.saveOTF(filename[0])
+        if res is None:
+            QToaster.showMessage(self, "Saved successfully", desktop=True)
+        else:
+            QToaster.showMessage(self, "Failed to save: " + res, desktop=True)
 
     def update(self):
         self.fontfeaturespanel.update()
