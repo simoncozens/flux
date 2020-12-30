@@ -5,6 +5,7 @@ from fontFeatures.feaLib import FeaUnparser
 from fontTools.ttLib import TTFont
 from fontFeatures.ttLib import unparse
 from Flux.computedroutine import ComputedRoutine
+from Flux.UI.GlyphActions import GlyphAction
 
 class FluxProject:
 
@@ -15,6 +16,7 @@ class FluxProject:
         self.font = Babelfont.open(self.fontfile)
         self.fontfeatures = FontFeatures()
         self.glyphclasses = {}
+        self.glyphactions = {}
         self.filename = None
 
         if self.fontfile.endswith(".ttf") or self.fontfile.endswith(".otf"):
@@ -40,6 +42,7 @@ class FluxProject:
         self.fontfile = self.xml.find("source").get("file")
         self.font = Babelfont.open(self.fontfile)
         self.fontfeatures = FontFeatures()
+        self.glyphactions = {}
         self.xmlToFontFeatures()
 
         self.glyphclasses = {}  # Will sync to fontFeatures when building
@@ -60,6 +63,7 @@ class FluxProject:
         # The font file is the authoritative source of the anchors, so load them
         # from the font file on load, in case they have changed.
         self._load_anchors()
+        self._load_glyphactions()
 
     def _load_anchors(self):
         for g in self.font:
@@ -67,6 +71,15 @@ class FluxProject:
                 if not a.name in self.fontfeatures.anchors:
                     self.fontfeatures.anchors[a.name] = {}
                 self.fontfeatures.anchors[a.name][g.name] = (a.x, a.y)
+
+    def _load_glyphactions(self):
+        glyphactions = self.xml.find("glyphactions")
+        if not glyphactions:
+            return
+        for xmlaction in glyphactions:
+            g = GlyphAction.fromXML(xmlaction)
+            self.glyphactions[g.glyph] = g
+            g.perform(self.font)
 
     def _slotArray(self, el):
         return [[g.text for g in slot.findall("glyph")] for slot in list(el)]
@@ -109,6 +122,13 @@ class FluxProject:
         routines = etree.SubElement(flux, "routines")
         for r in self.fontfeatures.routines:
             routines.append(r.toXML())
+
+        # Glyph actions
+        if self.glyphactions:
+            f = etree.SubElement(flux, "glyphactions")
+            for ga in self.glyphactions.values():
+                f.append(ga.toXML())
+
         et = etree.ElementTree(flux)
         with open(filename, "wb") as out:
             et.write(out, pretty_print=True)

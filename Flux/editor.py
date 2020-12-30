@@ -21,6 +21,7 @@ from Flux.ThirdParty.qtoaster import QToaster
 import Flux.Plugins
 import os.path, pkgutil, sys
 from functools import partial
+from Flux.UI.GlyphActions import QGlyphActionPicker
 
 
 class FluxEditor(QSplitter):
@@ -38,6 +39,7 @@ class FluxEditor(QSplitter):
             self.openFluxOrFont() # Exits if there still isn't one
         self.setWindowTitle("Flux - %s" % (self.project.filename or self.project.fontfile))
         self.setupFileMenu()
+        self.setupEditMenu()
         self.setupPluginMenu()
         self.left = QWidget()
         self.right = QWidget()
@@ -118,6 +120,12 @@ class FluxEditor(QSplitter):
         fileMenu.addSeparator()
         fileMenu.addAction(exportFea)
         fileMenu.addAction(exportOtf)
+
+    def setupEditMenu(self):
+        editMenu = self.mainMenu.addMenu("&Edit")
+        glyphedit = QAction("Glyph editor", self)
+        glyphedit.triggered.connect(lambda: QGlyphActionPicker.pickGlyph(self.project))
+        editMenu.addAction(glyphedit)
 
     def setupPluginMenu(self):
         pluginMenu = self.mainMenu.addMenu("&Plugins")
