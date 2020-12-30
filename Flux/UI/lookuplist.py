@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import (
     QDialogButtonBox,
     QLabel,
     QLineEdit,
+    QMessageBox
 )
 from PyQt5.QtCore import (
     QAbstractItemModel,
@@ -27,10 +28,12 @@ from fontFeatures import (
     Positioning,
     Chaining,
     ValueRecord,
+    Rule
 )
 from Flux.project import FluxProject
 import re
 from Flux.ThirdParty.HTMLDelegate import HTMLDelegate
+from Flux.computedroutine import ComputedRoutine
 
 
 class FeatureValidator(QValidator):
@@ -152,8 +155,13 @@ class LookupList(QTreeView):
         indexes = self.selectedIndexes()
         menu = QMenu()
         menu.addAction("Add routine", self.addRoutine)
-        if len(indexes) > 0:
-            if isinstance(indexes[0].internalPointer(), Routine):
+        thing = indexes[0].internalPointer()
+        if isinstance(thing, ComputedRoutine):
+            menu.addAction("Reify", self.reify)
+        elif isinstance(thing, Rule) and hasattr(thing, "computed"):
+            return
+        elif len(indexes) > 0:
+            if isinstance(thing, Routine):
                 menu.addAction("Delete routine", self.deleteItem)
                 menu.addAction("Add to feature...", self.addToFeature)
                 menu.addAction("Add substitution rule", self.addSubRule)
@@ -209,10 +217,43 @@ class LookupList(QTreeView):
             self.model().dataChanged.emit(index, index)
             self.parent.editor.setWindowModified(True)
 
+
+    @pyqtSlot()
+    def reify(self):
+        index = self.selectedIndexes()[0]
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Question)
+        msg.setWindowTitle("Are you sure?")
+        msg.setText("A manual routine will no longer automatically respond to changes in your font. Do you still want to convert this to a manual routine?")
+        msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        retval = msg.exec_()
+        if retval == QMessageBox.Yes:
+            self._reify(index)
+
+    def _reify(self, index):
+        oldroutine = index.internalPointer()
+        rindex = index.row()
+        newroutine = oldroutine.reify()
+        self.project.fontfeatures.routines[rindex] = newroutine
+        for k,v in self.project.fontfeatures.features.items():
+            self.project.fontfeatures.features[k] = [ newroutine if r==oldroutine else r for r in v]
+
+        self.parent.editor.setWindowModified(True)
+        self.parent.editor.update()
+
     def doubleClickHandler(self, index):
         if isinstance(index.internalPointer(), Routine):
             return
         if hasattr(index.internalPointer(), "computed"):
+            index = index.parent()
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Question)
+            msg.setWindowTitle("Reify?")
+            msg.setText("This is an automatic rule. To edit it manually, you need to convert its routine to a manual routine. Do you want to do this now?")
+            msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+            retval = msg.exec_()
+            if retval == QMessageBox.Yes:
+                self._reify(index)
             return
         if isinstance(index.internalPointer(), Attachment):
             self.parent.editor.showAttachmentEditor(

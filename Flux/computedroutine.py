@@ -39,6 +39,18 @@ class ComputedRoutine(Routine):
     def rules(self, value):
         pass
 
+    def reify(self):
+        newroutine = Routine(name=self.name)
+        newroutine.flags = self.flags
+        newroutine.languages = self.languages
+        newroutine.rules = self.rules  # Magic
+        for r in newroutine.rules:
+            delattr(r, "computed")
+
+        newroutine.markFilteringSet = self.markFilteringSet
+        newroutine.markAttachmentSet = self.markAttachmentSet
+        return newroutine
+
     def toXML(self):
         root = etree.Element("routine")
         root.attrib["computed"] = "true"
