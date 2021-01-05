@@ -38,12 +38,13 @@ class GlyphClassPredicate:
             self.combiner = predicate_dict["combiner"]
 
     def test(self, glyphset, font, infocache):
+        matches = []
         if self.type == "Name":
           # print(self.comparator, self.value)
           if self.comparator == "begins":
-            self.matches = [x for x in glyphset if x.startswith(self.value)]
+            matches = [x for x in glyphset if x.startswith(self.value)]
           elif self.comparator == "ends":
-            self.matches = [x for x in glyphset if x.endswith(self.value)]
+            matches = [x for x in glyphset if x.endswith(self.value)]
           elif self.comparator == "matches":
             try:
                 matches = [x for x in glyphset if re.search(self.value,x)]
