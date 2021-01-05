@@ -74,6 +74,9 @@ class GlyphClassModel(QAbstractTableModel):
     def setPredicates(self, index, predicates):
         name = self.order[index.row()]
         self.glyphclasses[name]["predicates"] = predicates
+        self.project.fontfeatures.namedClasses[name] = tuple(self.tester.test_all(
+            [GlyphClassPredicate(d) for d in predicates]
+        ))
 
     def data(self, index, role=Qt.DisplayRole):
         if not index.isValid():
