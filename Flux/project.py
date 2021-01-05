@@ -8,6 +8,7 @@ from fontFeatures.ttLib import unparse
 from Flux.computedroutine import ComputedRoutine
 from io import StringIO as UnicodeIO
 from Flux.UI.GlyphActions import GlyphAction
+from Flux.UI.glyphpredicateeditor import GlyphClassPredicateTester, GlyphClassPredicate
 
 class FluxProject:
 
@@ -57,6 +58,9 @@ class FluxProject:
                 if c.get("automatic") == "true":
                     thisclass["type"] = "automatic"
                     thisclass["predicates"] = [ dict(p.items()) for p in c.findall("predicate") ]
+                    self.fontfeatures.namedClasses[c.get("name")] = tuple(GlyphClassPredicateTester(self).test_all([
+                        GlyphClassPredicate(x) for x in thisclass["predicates"]
+                    ]))
                 else:
                     thisclass["type"] = "manual"
                     thisclass["contents"] = [g.text for g in c]
