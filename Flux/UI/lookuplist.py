@@ -153,6 +153,8 @@ class LookupList(QTreeView):
 
     def contextMenu(self, position):
         indexes = self.selectedIndexes()
+        if not indexes:
+            return
         menu = QMenu()
         menu.addAction("Add routine", self.addRoutine)
         thing = indexes[0].internalPointer()
