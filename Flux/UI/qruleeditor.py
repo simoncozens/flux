@@ -268,7 +268,7 @@ class QRuleEditor(QDialog):
                 slotLayout.addWidget(glyphHolder)
 
             # This is the part that adds a new glyph to a slot
-            newglyph = QGlyphName(self.project)
+            newglyph = QGlyphName(self.project, allow_classes=True)
             newglyph.slotindex = ix
             newglyph.contents = contents
             newglyph.glyphline.returnPressed.connect(self.addGlyphToSlot)
