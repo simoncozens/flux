@@ -18,6 +18,7 @@ from PyQt5.QtCore import (
     QModelIndex,
     Qt,
     pyqtSlot,
+    QMimeData
 )
 from PyQt5.QtGui import QValidator
 import sys
@@ -119,8 +120,10 @@ class LookupList(QTreeView):
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.setDragEnabled(True)
         self.setAcceptDrops(True)
+        self.setDefaultDropAction(Qt.TargetMoveAction)
         self.setDropIndicatorShown(True)
         self.setDragDropMode(QAbstractItemView.InternalMove)
+        self.setDragDropOverwriteMode(False)
         self.customContextMenuRequested.connect(self.contextMenu)
         self.doubleClicked.connect(self.doubleClickHandler)
 
@@ -301,6 +304,9 @@ class LookupListModel(QAbstractItemModel):
     def columnCount(self, index=QModelIndex()):
         return 1
 
+    def supportedDropActions(self):
+        return Qt.MoveAction
+
     def parent(self, index):
         if isinstance(index.internalPointer(), Routine):
             return QModelIndex()
@@ -384,10 +390,6 @@ class LookupListModel(QAbstractItemModel):
         return None
 
     def flags(self, index):
-        """Set the item flags at the given index. Seems like we're
-        implementing this function just to see how it's done, as we
-        manually adjust each tableView to have NoEditTriggers.
-        """
         if not index.isValid():
             return Qt.ItemIsDropEnabled
         flag = Qt.ItemFlags(QAbstractItemModel.flags(self, index))
@@ -395,11 +397,12 @@ class LookupListModel(QAbstractItemModel):
             return flag | Qt.ItemIsEditable | Qt.ItemIsDragEnabled
         return flag | Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
 
-    def insertRows(self, position, item=None, rows=1, index=QModelIndex()):
+    def insertRows(self, position, rows=1, parent=QModelIndex()):
         """ Insert a row into the model. """
+        assert(rows == 1)
         self.beginInsertRows(QModelIndex(), position, position + rows - 1)
 
-        self.project.fontfeatures.routines.append(Routine(name="", rules=[]))
+        self.project.fontfeatures.routines.insert(position,Routine(name="", rules=[]))
         self.endInsertRows()
         return True
 
@@ -407,9 +410,28 @@ class LookupListModel(QAbstractItemModel):
         self.insertRows(len(self.project.fontfeatures.routines))
         return self.index(len(self.project.fontfeatures.routines) - 1, 0)
 
-    def removeRows(self, indexes):
-        for i in indexes:
-            self.removeRow(i)
+    def removeRows(self, row, count, parent):
+        self.beginRemoveRows(parent, row, row+1)
+        self.project.fontfeatures.routines.pop(row)
+        self.endRemoveRows()
+        return True
+
+    def mimeData(self, indexes):
+        mimeData = super().mimeData(indexes)
+        mimeData.setText("row id: %i" %  indexes[0].row())
+        return mimeData
+
+    def dropMimeData(self, data, action, destrow, column, parent):
+        if parent.isValid():
+            return False
+        if not data.hasText() or not "row id:" in data.text():
+            return False
+        rowid = int(data.text()[7:])
+        routines = self.project.fontfeatures.routines
+        self.beginInsertRows(QModelIndex(), destrow, destrow)
+        routines.insert(destrow, routines[rowid])
+        self.endInsertRows()
+        return True
 
     def removeRow(self, index):
         """ Remove a row from the model. """
