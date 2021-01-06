@@ -93,6 +93,7 @@ class FluxProject:
 
     def xmlToFontFeatures(self):
         routines = {}
+        warnings = []
         for xmlroutine in self.xml.find("routines"):
             if "computed" in xmlroutine.attrib:
                 r = ComputedRoutine.fromXML(xmlroutine)
@@ -108,7 +109,12 @@ class FluxProject:
             featurename = xmlfeature.get("name")
             self.fontfeatures.features[featurename] = []
             for r in xmlfeature:
-                self.fontfeatures.addFeature(featurename, [routines[r.get("name")]])
+                routinename = r.get("name")
+                if routinename in routines:
+                    self.fontfeatures.addFeature(featurename, [routines[routinename]])
+                else:
+                    warnings.append("Lost routine %s referenced in feature %s" % (routinename, featurename))
+        return warnings # We don't do anything with them yet
 
     def save(self, filename=None):
         if not filename:
