@@ -270,7 +270,12 @@ class LookupList(QTreeView):
 
     @pyqtSlot()
     def addRoutine(self):
-        index = self.model().appendRow()
+        index = self.selectedIndexes()[0]
+        if index and index.isValid():
+            self.model().insertRows(index.row()+1, 1)
+            index = self.model().index(index.row()+1, 0)
+        else:
+            index = self.model().appendRow()
         self.selectionModel().select(index, QItemSelectionModel.ClearAndSelect)
         self.edit(index)
         self.parent.editor.setWindowModified(True)
@@ -284,8 +289,8 @@ class LookupList(QTreeView):
 
     @pyqtSlot()
     def deleteItem(self):
-        # Check if routine is in use
-        self.model().removeRows(self.selectedIndexes())
+        # XXX Check if routine is in use. Remove from Feature
+        self.model().removeRows(self.selectedIndexes()[0].row(), 1, QModelIndex())
         self.parent.editor.setWindowModified(True)
 
 
