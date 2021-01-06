@@ -153,23 +153,22 @@ class LookupList(QTreeView):
 
     def contextMenu(self, position):
         indexes = self.selectedIndexes()
-        if not indexes:
-            return
         menu = QMenu()
         menu.addAction("Add routine", self.addRoutine)
-        thing = indexes[0].internalPointer()
-        if isinstance(thing, ComputedRoutine):
-            menu.addAction("Reify", self.reify)
-        elif isinstance(thing, Rule) and hasattr(thing, "computed"):
-            return
-        elif len(indexes) > 0:
-            if isinstance(thing, Routine):
+        if indexes:
+            thing = indexes[0].internalPointer()
+            if isinstance(thing, Rule) and hasattr(thing, "computed"):
+                pass
+            elif isinstance(thing, Routine):
                 menu.addAction("Delete routine", self.deleteItem)
                 menu.addAction("Add to feature...", self.addToFeature)
-                menu.addAction("Add substitution rule", self.addSubRule)
-                menu.addAction("Add positioning rule", self.addPosRule)
-                menu.addAction("Add attachment rule", self.addAttRule)
-                menu.addAction("Add chaining rule", self.addChainRule)
+                if isinstance(thing, ComputedRoutine):
+                    menu.addAction("Reify", self.reify)
+                else:
+                    menu.addAction("Add substitution rule", self.addSubRule)
+                    menu.addAction("Add positioning rule", self.addPosRule)
+                    menu.addAction("Add attachment rule", self.addAttRule)
+                    menu.addAction("Add chaining rule", self.addChainRule)
                 menu.addAction("Set routine flags", self.setFlags)
             else:
                 menu.addAction("Delete rule", self.deleteItem)
