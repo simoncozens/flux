@@ -6,6 +6,7 @@ from fontTools.feaLib.builder import Builder
 from fontTools.ttLib import TTFont
 from fontFeatures.ttLib import unparse
 from Flux.computedroutine import ComputedRoutine
+from Flux.dividerroutine import DividerRoutine
 from io import StringIO as UnicodeIO
 from Flux.UI.GlyphActions import GlyphAction
 from Flux.UI.glyphpredicateeditor import GlyphClassPredicateTester, GlyphClassPredicate
@@ -96,6 +97,8 @@ class FluxProject:
             if "computed" in xmlroutine.attrib:
                 r = ComputedRoutine.fromXML(xmlroutine)
                 r.project = self
+            elif "divider" in xmlroutine.attrib:
+                r = DividerRoutine.fromXML(xmlroutine)
             else:
                 r = Routine.fromXML(xmlroutine)
             routines[r.name] = r

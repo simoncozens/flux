@@ -35,6 +35,7 @@ from Flux.project import FluxProject
 import re
 from Flux.ThirdParty.HTMLDelegate import HTMLDelegate
 from Flux.computedroutine import ComputedRoutine
+from Flux.dividerroutine import DividerRoutine
 
 
 class FeatureValidator(QValidator):
@@ -165,6 +166,7 @@ class LookupList(QTreeView):
             elif isinstance(thing, Routine):
                 menu.addAction("Delete routine", self.deleteItem)
                 menu.addAction("Add to feature...", self.addToFeature)
+                menu.addAction("Add separator", self.addSeparatorRoutine)
                 if isinstance(thing, ComputedRoutine):
                     menu.addAction("Reify", self.reify)
                 else:
@@ -274,6 +276,13 @@ class LookupList(QTreeView):
         self.parent.editor.setWindowModified(True)
 
     @pyqtSlot()
+    def addSeparatorRoutine(self):
+        index = self.selectedIndexes()[0]
+        self.model().insertRows(index.row()+1, 1)
+        self.project.fontfeatures.routines[index.row()+1] = DividerRoutine()
+        self.parent.editor.setWindowModified(True)
+
+    @pyqtSlot()
     def deleteItem(self):
         # Check if routine is in use
         self.model().removeRows(self.selectedIndexes())
@@ -339,7 +348,10 @@ class LookupListModel(QAbstractItemModel):
         if index.isValid() and 0 <= index.row() < len(
             self.project.fontfeatures.routines
         ):
-            self.project.fontfeatures.routines[index.row()].name = value
+            if  isinstance(self.project.fontfeatures.routines[index.row()], DividerRoutine):
+                self.project.fontfeatures.routines[index.row()].comment = value
+            else:
+                self.project.fontfeatures.routines[index.row()].name = value
             # self.dataChanged.emit(index, index)
             return True
 
@@ -373,10 +385,15 @@ class LookupListModel(QAbstractItemModel):
         # print("Getting index ", index.row(), index.column(), index.internalPointer())
         if not index.isValid():
             return None
+        item = index.internalPointer()
+        if role == Qt.EditRole and self.indexIsRoutine(index) and isinstance(item,DividerRoutine):
+            return item.comment
         if role == Qt.DisplayRole or role == Qt.EditRole:
-            item = index.internalPointer()
             if self.indexIsRoutine(index):
-                return item.name + self.describeFlags(item)
+                if isinstance(item, DividerRoutine):
+                    return f'<i style="color:#aaa">{item.comment or "————"}</i>'
+                else:
+                    return item.name + self.describeFlags(item)
             elif hasattr(item, "computed"):
                 return f'<i style="color:#aaa">{item.asFea()}</i>'
             elif isinstance(item, Attachment):
