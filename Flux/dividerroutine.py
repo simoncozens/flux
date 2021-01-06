@@ -4,6 +4,7 @@ from lxml import etree
 
 class DividerRoutine(Routine):
     def __init__(self, **kwargs):
+        self.comment = None
         if "comment" in kwargs:
             self.comment = kwargs["comment"]
             del kwargs["comment"]
@@ -20,7 +21,9 @@ class DividerRoutine(Routine):
     def toXML(self):
         root = etree.Element("routine")
         root.attrib["divider"] = "true"
-        root.attrib["comment"] = self.comment
+        if self.comment:
+            root.attrib["comment"] = self.comment
+        return root
 
     @classmethod
     def fromXML(klass, el):
