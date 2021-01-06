@@ -12,13 +12,15 @@ from PyQt5.QtWidgets import (
     QScrollArea,
     QGridLayout,
     QStyle,
+    QFrame,
+    QTextEdit,
 
 )
 from Flux.ThirdParty.QFlowGridLayout import QFlowGridLayout
 from fontFeatures.shaperLib.Buffer import Buffer
 from Flux.UI.qbufferrenderer import QBufferRenderer
 from PyQt5.QtCore import Qt, pyqtSignal, QStringListModel, QMargins
-from PyQt5.QtGui import QValidator
+from PyQt5.QtGui import QValidator, QTextOption
 
 import darkdetect
 
@@ -41,8 +43,10 @@ class GlyphNameValidator(QValidator):
         if s in self.glyphSet:
             return (QValidator.Acceptable, s, pos)
         if not self.multiple and " " in s:
+            print("Invalid (space)")
             return (QValidator.Invalid, s, pos)
         if not self.allow_classes and "@" in s:
+            print("Invalid (class)")
             return (QValidator.Invalid, s, pos)
         # XXX Other things not acceptable in glyphs here?
         if self.multiple:
@@ -54,6 +58,9 @@ class GlyphNameValidator(QValidator):
                     allOk = False
             if allOk:
                 return (QValidator.Acceptable, s, pos)
+        if self.allow_classes and s[1:] in self.classSet: # And not multiple
+            return (QValidator.Acceptable, s, pos)
+
         return (QValidator.Intermediate, s, pos)
 
     def fixup(self, s):
@@ -70,8 +77,12 @@ class QGlyphBox(QWidget):
         buf = Buffer(self.parent.project.font, glyphs = [glyph])
         renderer = QBufferRenderer(self.parent.project, buf)
         wlayout.addWidget(renderer)
-        label = QLabel(glyph)
+        label = QTextEdit(glyph)
+        label.setReadOnly(True)
+        label.setFrameStyle(QFrame.NoFrame)
         label.setAlignment(Qt.AlignCenter)
+        label.setLineWrapMode(QTextEdit.WidgetWidth)
+        label.setWordWrapMode(QTextOption.WrapAtWordBoundaryOrAnywhere)
         wlayout.addWidget(label)
         renderer.resizeEvent(None)
         # self.setContentsMargins(QMargins(25, 25, 25, 25))
