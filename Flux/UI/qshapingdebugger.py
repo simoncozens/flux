@@ -18,6 +18,7 @@ from PyQt5.QtCore import Qt
 from Flux.ThirdParty.QFlowLayout import QFlowLayout
 from fontFeatures.shaperLib.Buffer import Buffer
 from fontFeatures.shaperLib.Shaper import Shaper
+from fontFeatures.shaperLib.BaseShaper import BaseShaper
 from copy import copy, deepcopy
 import re
 
@@ -159,6 +160,11 @@ class QShapingDebugger(QSplitter):
             message_item = QTableWidgetItem(msg)
             self.messageTable.setItem(rowPosition, 0, message_item)
             return
+
+        # Urgh
+        b = BaseShaper(None, None, buffer)
+        for i in range(0,len(buffer.items)):
+            b.propagate_attachment_offsets(i)
 
         ser = buffer.serialize(additional=serialize_options)
 
