@@ -34,6 +34,7 @@ class FluxEditor(QSplitter):
 
         self.mainMenu = QMenuBar(self)
         self.project = proj
+        self.project.editor = self
         self.loadPlugins()
         if not proj:
             self.openFluxOrFont() # Exits if there still isn't one
@@ -155,7 +156,7 @@ class FluxEditor(QSplitter):
         )
         if not glyphs:
             return
-        self.project = FluxProject.new(glyphs[0])
+        self.project = FluxProject.new(glyphs[0], editor=self)
         self.setWindowTitle("Flux - %s" % (self.project.filename or self.project.fontfile))
         self.rebuild_ui()
 
@@ -176,9 +177,9 @@ class FluxEditor(QSplitter):
                 sys.exit(0)
             return
         if filename[0].endswith(".fluxml"):
-            self.project = FluxProject(filename[0])
+            self.project = FluxProject(filename[0], editor=self)
         else:
-            self.project = FluxProject.new(filename[0])
+            self.project = FluxProject.new(filename[0], editor=self)
         self.setWindowTitle("Flux - %s" % (self.project.filename or self.project.fontfile))
 
     def file_save_as(self):

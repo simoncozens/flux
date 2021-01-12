@@ -3,7 +3,7 @@ from lxml import etree
 
 
 class ComputedRoutine(Routine):
-    def __init__(self, **kwargs):
+    def __init__(self,  **kwargs):
         self.parameters = {}
         self.plugin = ""
         self._rules = []
@@ -16,8 +16,8 @@ class ComputedRoutine(Routine):
     def okay(self):
         if hasattr(self, "module"):
             return True
-        assert self.editor
-        return self.plugin in self.editor.plugins
+        assert self.project.editor
+        return self.plugin in self.project.editor.plugins
 
     @property
     def rules(self):
@@ -26,7 +26,7 @@ class ComputedRoutine(Routine):
             if not self.okay:
                 return []
             if not hasattr(self, "module"):
-                mod = self.editor.plugins[self.plugin]
+                mod = self.project.editor.plugins[self.plugin]
             else:
                 mod = self.module
             rules = mod.rulesFromComputedRoutine(self)

@@ -14,11 +14,12 @@ from Flux.UI.glyphpredicateeditor import GlyphClassPredicateTester, GlyphClassPr
 class FluxProject:
 
     @classmethod
-    def new(klass, fontfile):
+    def new(klass, fontfile, editor=None):
         self = FluxProject()
         self.fontfile = fontfile
         self.font = Babelfont.open(self.fontfile)
         self.fontfeatures = FontFeatures()
+        self.editor = editor
         self.glyphclasses = {}
         self.glyphactions = {}
         self.filename = None
@@ -103,7 +104,7 @@ class FluxProject:
             else:
                 r = Routine.fromXML(xmlroutine)
             routines[r.name] = r
-            self.fontfeatures.addRoutine(r)
+            self.fontfeatures.routines.append(r)
         for xmlfeature in self.xml.find("features"):
             # Temporary until we refactor fontfeatures
             featurename = xmlfeature.get("name")
