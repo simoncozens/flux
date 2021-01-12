@@ -22,6 +22,7 @@ class FluxProject:
         self.editor = editor
         self.glyphclasses = {}
         self.glyphactions = {}
+        self.debuggingText = ""
         self.filename = None
 
         if self.fontfile.endswith(".ttf") or self.fontfile.endswith(".otf"):
@@ -49,6 +50,11 @@ class FluxProject:
         self.fontfeatures = FontFeatures()
         self.glyphactions = {}
         self.xmlToFontFeatures()
+        text = self.xml.find("debuggingText")
+        if text is not None:
+            self.debuggingText = text.text
+        else:
+            self.debuggingText = ""
 
         self.glyphclasses = {}  # Will sync to fontFeatures when building
         # XXX will it?
@@ -122,6 +128,7 @@ class FluxProject:
             filename = self.filename
         flux = etree.Element("flux")
         etree.SubElement(flux, "source").set("file", self.fontfile)
+        etree.SubElement(flux, "debuggingText").text = self.debuggingText
         glyphclasses = etree.SubElement(flux, "glyphclasses")
         for k,v in self.glyphclasses.items():
             self.serializeGlyphClass(glyphclasses, k, v)

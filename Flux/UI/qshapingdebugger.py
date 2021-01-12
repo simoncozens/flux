@@ -28,7 +28,7 @@ class QShapingDebugger(QSplitter):
         self.editor = editor
         self.project = project
         super(QSplitter, self).__init__()
-        self.text = self.getReasonableTextForFont(self.project.font)
+        self.text = self.project.debuggingText or self.getReasonableTextForFont(self.project.font)
 
         # First box: Text and features
         self.firstbox = QWidget()
@@ -143,10 +143,10 @@ class QShapingDebugger(QSplitter):
             self.project.font,
             message_function=self.addToTable,
         )
-        try:
-            shaper.execute(buf, features=features)
-        except Exception as e:
-            print("Shaping exception: ", e)
+        # try:
+        shaper.execute(buf, features=features)
+        # except Exception as e:
+            # print("Shaping exception: ", e)
         self.qbr.set_buf(buf)
         self.fullBuffer = buf
         self.shaperOutput.setText(buf.serialize())
@@ -210,6 +210,7 @@ class QShapingDebugger(QSplitter):
 
     def textChanged(self, text):
         self.text = text
+        self.project.debuggingText = text
         self.shapeText()
 
     def getReasonableTextForFont(self, font):
