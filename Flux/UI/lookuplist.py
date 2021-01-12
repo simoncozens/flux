@@ -270,8 +270,8 @@ class LookupList(QTreeView):
 
     @pyqtSlot()
     def addRoutine(self):
-        index = self.selectedIndexes()[0]
-        if index and index.isValid():
+        if self.selectedIndexes():
+            index = self.selectedIndexes()[0]
             self.model().insertRows(index.row()+1, 1)
             index = self.model().index(index.row()+1, 0)
         else:
