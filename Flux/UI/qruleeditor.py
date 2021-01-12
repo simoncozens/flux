@@ -14,14 +14,22 @@ from PyQt5.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QCompleter,
-    QSizePolicy
+    QSizePolicy,
 )
 from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot, QStringListModel
 from fontFeatures.shaperLib.Shaper import Shaper
 from fontFeatures.shaperLib.Buffer import Buffer
 from .qbufferrenderer import QBufferRenderer
 from .qglyphname import QGlyphName
-from fontFeatures import Positioning, ValueRecord, Substitution, Chaining, Rule, Routine
+from fontFeatures import (
+    Positioning,
+    ValueRecord,
+    Substitution,
+    Chaining,
+    Rule,
+    Routine,
+    RoutineReference,
+)
 import sys
 import darkdetect
 
@@ -78,7 +86,7 @@ class QRuleEditor(QDialog):
         self.buffer_script = "Latin"
         self.index = None
         if rule:
-            self.backup_rule = Rule.fromXML(rule.toXML()) # Deep copy
+            self.backup_rule = Rule.fromXML(rule.toXML())  # Deep copy
         else:
             self.backup_rule = None
 
@@ -118,8 +126,8 @@ class QRuleEditor(QDialog):
 
         splitter.addWidget(self.before_after)
         buttons = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
-            Qt.Horizontal, self)
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self
+        )
         for button in buttons.buttons():
             button.setDefault(False)
             button.setAutoDefault(False)
@@ -157,7 +165,7 @@ class QRuleEditor(QDialog):
             try:
                 self.asFea.setText(self.rule.asFea())
             except Exception as e:
-                print("Can't serialize" , e)
+                print("Can't serialize", e)
         self.outputview_before.set_buf(self.makeBuffer("before"))
         self.outputview_after.set_buf(self.makeBuffer("after"))
 
@@ -165,7 +173,9 @@ class QRuleEditor(QDialog):
     def changeRepresentativeString(self):
         l = self.sender()
         if l.text().startswith("@"):
-            self.representative_string[l.slotnumber] = self.project.fontfeatures.namedClasses[l.text()[1:]][0]
+            self.representative_string[
+                l.slotnumber
+            ] = self.project.fontfeatures.namedClasses[l.text()[1:]][0]
         else:
             self.representative_string[l.slotnumber] = l.text()
 
@@ -175,7 +185,7 @@ class QRuleEditor(QDialog):
     def replacementChanged(self):
         l = self.sender()
         replacements = l.text().split()
-        self.rule.replacement = [ [x] for x in replacements ]
+        self.rule.replacement = [[x] for x in replacements]
         self.resetBuffer()
 
     @pyqtSlot()
@@ -183,13 +193,17 @@ class QRuleEditor(QDialog):
         l = self.sender()
         glyphname = l.text()
         # Check for class names
-        if glyphname.startswith("@") and glyphname[1:] in self.project.fontfeatures.namedClasses.keys():
+        if (
+            glyphname.startswith("@")
+            and glyphname[1:] in self.project.fontfeatures.namedClasses.keys()
+        ):
             # It's OK
             pass
         elif glyphname not in self.project.font.keys():
-            print(f'{glyphname} not found')
+            print(f"{glyphname} not found")
             l.setText("")
             return
+        print("Adding ", glyphname)
         l.owner.contents[l.owner.slotindex].append(glyphname)
         self.arrangeSlots()
         self.representative_string = self.makeRepresentativeString()
@@ -213,7 +227,10 @@ class QRuleEditor(QDialog):
             if sender.contents == self.rule.shaper_inputs():
                 if isinstance(self.rule, Positioning):
                     self.rule.valuerecords.insert(0, ValueRecord())
-                elif isinstance(self.rule, Substitution) and len(self.rule.shaper_inputs()) == 1:
+                elif (
+                    isinstance(self.rule, Substitution)
+                    and len(self.rule.shaper_inputs()) == 1
+                ):
                     self.rule.replacement.insert(0, [])
                 elif isinstance(self.rule, Chaining):
                     self.rule.lookups.insert(0, [])
@@ -223,7 +240,10 @@ class QRuleEditor(QDialog):
             if sender.contents == self.rule.shaper_inputs():
                 if isinstance(self.rule, Positioning):
                     self.rule.valuerecords.append(ValueRecord())
-                elif isinstance(self.rule, Substitution) and len(self.rule.shaper_inputs()) == 1:
+                elif (
+                    isinstance(self.rule, Substitution)
+                    and len(self.rule.shaper_inputs()) == 1
+                ):
                     self.rule.replacement.append([])
                 elif isinstance(self.rule, Chaining):
                     self.rule.lookups.append([])
@@ -235,7 +255,6 @@ class QRuleEditor(QDialog):
         self.resetBuffer()
 
     def makeASlot(self, slotnumber, contents, style=None, editingWidgets=None):
-        print(f'slot number {slotnumber} editing widgets', editingWidgets)
         for ix, glyphslot in enumerate(contents):
             slot = QWidget()
             slotLayout = QVBoxLayout()
@@ -258,7 +277,7 @@ class QRuleEditor(QDialog):
                 glyphHolderLayout.addWidget(l)
 
                 remove = QPushButton("x")
-                remove.setSizePolicy(QSizePolicy.Maximum,QSizePolicy.Preferred)
+                remove.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Preferred)
                 remove.slotindex = ix
                 remove.indexWithinSlot = ixWithinSlot
                 remove.contents = contents
@@ -273,7 +292,6 @@ class QRuleEditor(QDialog):
             newglyph.contents = contents
             newglyph.glyphline.returnPressed.connect(self.addGlyphToSlot)
             slotLayout.addWidget(newglyph)
-
 
             slotLayout.addStretch()
             if editingWidgets and ix < len(editingWidgets):
@@ -310,15 +328,26 @@ class QRuleEditor(QDialog):
 
     def lookupCombobox(self, current):
         c = QComboBox()
-        names = [x.name for x in self.project.fontfeatures.routines]
+        names = [
+            x.name
+            for x in self.project.fontfeatures.routines
+            if not hasattr(x, "comment")
+        ]
+        names = ["--- No lookup ---"] + names
         for name in names:
             c.addItem(name)
         if current in names:
             c.setCurrentIndex(names.index(current))
-        elif current: # XXX fontFeatures needs refactoring
-            c.addItem(current)
-            c.setCurrentIndex(len(names))
         return c
+
+    @pyqtSlot()
+    def chainingLookupChanged(self):
+        l = self.sender()
+        if l.currentIndex() == 0:
+            self.rule.lookups[l.ix] = []
+        else:
+            self.rule.lookups[l.ix] = [RoutineReference(name=l.currentText())]
+        self.resetBuffer()
 
     def addPrecontext(self):
         self.rule.precontext = [[]]
@@ -332,7 +361,9 @@ class QRuleEditor(QDialog):
         editingWidgets = []
         if isinstance(self.rule, Substitution):
             replacements = [x[0] for x in self.rule.replacement if x]
-            widget = QGlyphName(self.project, multiple = len(self.rule.shaper_inputs()) < 2)
+            widget = QGlyphName(
+                self.project, multiple=len(self.rule.shaper_inputs()) < 2
+            )
             widget.setText(" ".join(replacements) or "")
             widget.position = 0
             widget.returnPressed.connect(self.replacementChanged)
@@ -346,6 +377,8 @@ class QRuleEditor(QDialog):
                 elif isinstance(self.rule, Chaining):
                     lookup = self.rule.lookups[ix] and self.rule.lookups[ix][0].name
                     widget = self.lookupCombobox(lookup)
+                    widget.ix = ix
+                    widget.currentTextChanged.connect(self.chainingLookupChanged)
                     editingWidgets.append(widget)
         return editingWidgets
 
@@ -386,9 +419,7 @@ class QRuleEditor(QDialog):
             widget.clicked.connect(self.addPostcontext)
             self.slotview.addWidget(widget)
         else:
-            self.makeASlot(
-                slotnumber, self.rule.postcontext, postcontext_style
-            )
+            self.makeASlot(slotnumber, self.rule.postcontext, postcontext_style)
 
         self.slotview.addStretch()
 
@@ -407,30 +438,40 @@ class QRuleEditor(QDialog):
 
         representative_string = [x for x in inputglyphs if x]
         for ix, g in enumerate(representative_string):
-            if g.startswith("@") and g[1:] in self.project.fontfeatures.namedClasses.keys():
-                representative_string[ix] = self.project.fontfeatures.namedClasses[g[1:]][0]
+            if (
+                g.startswith("@")
+                and g[1:] in self.project.fontfeatures.namedClasses.keys()
+            ):
+                representative_string[ix] = self.project.fontfeatures.namedClasses[
+                    g[1:]
+                ][0]
 
         # We use this representative string to guess information about
         # how the *real* shaping process will take place; buffer direction
         # and script, and hence choice of complex shaper, and hence from
         # that choice of features to be processed.
-        unicodes = [self.project.font.codepointForGlyph(x) for x in representative_string]
+        unicodes = [
+            self.project.font.codepointForGlyph(x) for x in representative_string
+        ]
         unicodes = [x for x in unicodes if x]
-        tounicodes = "".join(map (chr, unicodes))
-        bufferForGuessing = Buffer(self.project.font, unicodes = tounicodes)
+        tounicodes = "".join(map(chr, unicodes))
+        bufferForGuessing = Buffer(self.project.font, unicodes=tounicodes)
         self.buffer_direction = bufferForGuessing.direction
         self.buffer_script = bufferForGuessing.script
         # print("Guessed buffer direction ", self.buffer_direction)
         # print("Guessed buffer script ", self.buffer_script)
         shaper = Shaper(self.project.fontfeatures, self.project.font)
-        bufferForGuessing = Buffer(self.project.font, glyphs = representative_string)
+        bufferForGuessing = Buffer(self.project.font, glyphs=representative_string)
         shaper.execute(bufferForGuessing)
         self.availableFeatures = []
         for stage in shaper.stages:
             if not isinstance(stage, list):
                 continue
             for f in stage:
-                if f not in self.availableFeatures and f in self.project.fontfeatures.features:
+                if (
+                    f not in self.availableFeatures
+                    and f in self.project.fontfeatures.features
+                ):
                     self.availableFeatures.append(f)
         self.makeFeatureButtons()
 
@@ -449,24 +490,29 @@ class QRuleEditor(QDialog):
         features = []
         for i in range(self.featureButtonLayout.count()):
             item = self.featureButtonLayout.itemAt(i).widget()
-            features.append({ "tag": item.text(), "value": item.isChecked() })
+            features.append({"tag": item.text(), "value": item.isChecked()})
         return features
-
 
     def makeBuffer(self, before_after="before"):
         buf = Buffer(
-            self.project.font, glyphs=self.representative_string, direction=self.buffer_direction
+            self.project.font,
+            glyphs=self.representative_string,
+            direction=self.buffer_direction,
         )
+        print("representative_string: ", self.representative_string)
         shaper = Shaper(self.project.fontfeatures, self.project.font)
 
-        shaper.execute(buf,features = self.makeShaperFeatureArray())
+        shaper.execute(buf, features=self.makeShaperFeatureArray())
         routine = Routine(rules=[self.rule])
+        print("Before: ", buf.serialize())
         if before_after == "after" and self.rule:
-            buf.clear_mask() # XXX
+            print(self.rule.asFea())
+            buf.clear_mask()  # XXX
             try:
                 routine.apply_to_buffer(buf)
             except Exception as e:
-                print("Couldn't shape: "+str(e))
+                print("Couldn't shape: " + str(e))
+            print("After: ", buf.serialize())
         return buf
 
 
