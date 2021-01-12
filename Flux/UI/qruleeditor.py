@@ -15,8 +15,9 @@ from PyQt5.QtWidgets import (
     QDialogButtonBox,
     QCompleter,
     QSizePolicy,
+    QStyle
 )
-from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot, QStringListModel
+from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot, QStringListModel, QSize
 from fontFeatures.shaperLib.Shaper import Shaper
 from fontFeatures.shaperLib.Buffer import Buffer
 from .qbufferrenderer import QBufferRenderer
@@ -326,8 +327,9 @@ class QRuleEditor(QDialog):
             self.slotview.addWidget(slot)
         return slotnumber
 
-    def lookupCombobox(self, current):
+    def lookupCombobox(self, current, warning):
         c = QComboBox()
+        c.warning = warning
         names = [
             x.name
             for x in self.project.fontfeatures.routines
@@ -338,6 +340,7 @@ class QRuleEditor(QDialog):
             c.addItem(name)
         if current in names:
             c.setCurrentIndex(names.index(current))
+        self.setComboboxWarningIfNeeded(c)
         return c
 
     @pyqtSlot()
@@ -347,7 +350,38 @@ class QRuleEditor(QDialog):
             self.rule.lookups[l.ix] = []
         else:
             self.rule.lookups[l.ix] = [RoutineReference(name=l.currentText())]
+        self.setComboboxWarningIfNeeded(l)
         self.resetBuffer()
+
+    def changesGlyphstringLength(self, routine, depth=1):
+        if depth > 10:
+            return False
+        for r in routine.rules:
+            if isinstance(r, Substitution) and len(r.input) != len(r.replacement):
+                return True
+            elif isinstance(r, Chaining):
+                for lus in r.lookups:
+                    for l in (lus or []):
+                        if self.changesGlyphstringLength(l.routine, depth+1):
+                            return True
+        return False
+
+    def setComboboxWarningIfNeeded(self, combobox):
+        # Find routine
+        rname = combobox.currentText()
+        warningNeeded = False
+        if rname:
+            routine = None
+            for r in self.project.fontfeatures.routines:
+                if r.name == rname:
+                    routine = r
+        if routine and self.changesGlyphstringLength(routine):
+            stdicon = self.style().standardIcon(QStyle.SP_MessageBoxWarning)
+            combobox.warning.setPixmap(stdicon.pixmap(stdicon.actualSize(QSize(16, 16))))
+            combobox.warning.setToolTip("<qt>This lookup may change the length of the glyph stream. Subsequent lookups may not fire at the glyph slots you expect.</qt>")
+        else:
+            combobox.warning.clear()
+            combobox.warning.setToolTip("")
 
     def addPrecontext(self):
         self.rule.precontext = [[]]
@@ -376,10 +410,16 @@ class QRuleEditor(QDialog):
                     editingWidgets.append(widget)
                 elif isinstance(self.rule, Chaining):
                     lookup = self.rule.lookups[ix] and self.rule.lookups[ix][0].name
-                    widget = self.lookupCombobox(lookup)
+                    w = QWidget()
+                    wl = QHBoxLayout(w)
+                    w.setLayout(wl)
+                    warning = QLabel()
+                    widget = self.lookupCombobox(lookup, warning)
                     widget.ix = ix
                     widget.currentTextChanged.connect(self.chainingLookupChanged)
-                    editingWidgets.append(widget)
+                    wl.addWidget(widget)
+                    wl.addWidget(warning)
+                    editingWidgets.append(w)
         return editingWidgets
 
     def clearLayout(self, layout):
