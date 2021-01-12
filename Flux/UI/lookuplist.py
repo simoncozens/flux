@@ -398,7 +398,7 @@ class LookupListModel(QAbstractItemModel):
                 if isinstance(item, DividerRoutine):
                     return f'<i style="color:#aaa">{item.comment or "————"}</i>'
                 else:
-                    return item.name + self.describeFlags(item)
+                    return (item.name or "")+ self.describeFlags(item)
             elif hasattr(item, "computed"):
                 return f'<i style="color:#aaa">{item.asFea()}</i>'
             elif isinstance(item, Attachment):
