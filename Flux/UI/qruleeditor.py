@@ -262,6 +262,13 @@ class QRuleEditor(QDialog):
             if style:
                 slot.setStyleSheet(style)
 
+
+            scroll = QScrollArea()
+            scroll.setWidgetResizable(True)
+            scrollWidget = QWidget()
+            scrollLayout = QVBoxLayout()
+            scrollWidget.setLayout(scrollLayout)
+            scroll.setWidget(scrollWidget)
             for ixWithinSlot, glyph in enumerate(glyphslot):
                 glyphHolder = QWidget()
                 glyphHolderLayout = QHBoxLayout()
@@ -270,22 +277,18 @@ class QRuleEditor(QDialog):
                 l.setDefault(False)
                 l.setAutoDefault(False)
                 l.slotnumber = slotnumber
-                # l.setFlat(True)
                 l.clicked.connect(self.changeRepresentativeString)
-                # l.setAlignment(Qt.AlignCenter)
-                # if style:
-                #     l.setStyleSheet(style)
                 glyphHolderLayout.addWidget(l)
 
                 remove = QPushButton("x")
-                remove.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Preferred)
                 remove.slotindex = ix
                 remove.indexWithinSlot = ixWithinSlot
                 remove.contents = contents
                 remove.clicked.connect(self.removeGlyphFromSlot)
                 glyphHolderLayout.addWidget(remove)
+                scrollLayout.addWidget(glyphHolder)
 
-                slotLayout.addWidget(glyphHolder)
+            slotLayout.addWidget(scroll)
 
             # This is the part that adds a new glyph to a slot
             newglyph = QGlyphName(self.project, allow_classes=True)
