@@ -16,12 +16,13 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt
 from Flux.ThirdParty.QFlowLayout import QFlowLayout
-from fontFeatures.shaperLib.Buffer import Buffer
+from fontFeatures.shaperLib.Buffer import Buffer, BufferItem
 from fontFeatures.shaperLib.Shaper import Shaper
 from fontFeatures.shaperLib.BaseShaper import BaseShaper
 from copy import copy, deepcopy
 import re
 
+valid_glyph_name_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-*:^|~"
 
 class QShapingDebugger(QSplitter):
     def __init__(self, editor, project):
@@ -119,6 +120,32 @@ class QShapingDebugger(QSplitter):
         self.fillFeatureGroup()
         self.shapeText()
 
+    def buildBuffer(self):
+        buf = Buffer(self.project.font)
+        t = self.text
+        i = 0
+        while i < len(t):
+            if t[i] == "/": # Start of glyph name
+                i = i + 1
+                glyphname = ""
+                while i < len(t) and t[i] in valid_glyph_name_chars:
+                    glyphname += t[i]
+                    i = i + 1
+                if len(glyphname) and glyphname in self.project.font:
+                    print("Adding glyph item %s" % glyphname)
+                    item = BufferItem.new_glyph(glyphname, self.project.font)
+                    item.codepoint = self.project.font.codepointForGlyph(glyphname)
+                    buf.items.append(item)
+                else:
+                    buf.items.extend([BufferItem.new_unicode(ord(x)) for x in "/"+glyphname])
+            else:
+                item = BufferItem.new_unicode(ord(t[i]))
+                print("Adding buffer item %s" % item)
+                i = i + 1
+                buf.items.append(item)
+        buf.guess_segment_properties()
+        return buf
+
     def shapeText(self):
         features = []
         for k, box in self.features.items():
@@ -126,7 +153,7 @@ class QShapingDebugger(QSplitter):
                 continue
             features.append({"tag": k, "value": box.isChecked()})
 
-        buf = Buffer(self.project.font, unicodes=self.text)
+        buf = self.buildBuffer()
         self.messageTable.setRowCount(0)
         if not self.text:
             buf.clear_mask()
