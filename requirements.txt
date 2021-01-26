@@ -2,7 +2,6 @@ PyQt5==5.15.0
 lxml
 darkdetect
 git+git://github.com/simoncozens/glyphsLib@glyphs3-try3#egg=glyphsLib
-git+git://github.com/simoncozens/glyphtools#egg=glyphtools
 git+git://github.com/simoncozens/fontfeatures.git#egg=fontfeatures
 git+git://github.com/simoncozens/babelfont.git#egg=babelfont
 qcrash
