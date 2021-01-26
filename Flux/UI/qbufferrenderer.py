@@ -24,6 +24,7 @@ class QBufferRenderer(QGraphicsView):
     def set_scene_from_buf(self):
         self.scene.clear()
         xcursor = 0
+        font = self.project.font
         if self.buf and len(self.buf) > 0:
             items = self.buf.items
             if self.buf.direction == "RTL":
@@ -32,9 +33,13 @@ class QBufferRenderer(QGraphicsView):
                 color = inkcolor
                 if hasattr(g, "color"):
                     color = g.color
-                self.drawGlyph(self.scene, g, xcursor + (g.position.xPlacement or 0), (g.position.yPlacement or 0), color)
+                glyph = g.glyph
                 if hasattr(g, "anchor"):
                     self.drawCross(self.scene, xcursor + g.anchor[0], g.anchor[1], color)
+                if not glyph in font:
+                    continue
+                layer = font[glyph]
+                self.drawGlyph(self.scene, layer, xcursor + (g.position.xPlacement or 0), (g.position.yPlacement or 0), color)
                 # else:
                 xcursor = xcursor + g.position.xAdvance
         self.fitInView(self.scene.sceneRect(), Qt.KeepAspectRatio)
@@ -64,15 +69,10 @@ class QBufferRenderer(QGraphicsView):
         line.setTransform(reflect)
         scene.addItem(line)
 
-    def drawGlyph(self, scene, item, offsetX=0, offsetY=0, color=(255,255,255)):
-        glyph = item.glyph
-        font = self.project.font
-        if not glyph in font:
-            return
-        layer = font[glyph]
+    def drawGlyph(self, scene, layer, offsetX=0, offsetY=0, color=(255,255,255)):
         path = QPainterPath()
         path.setFillRule(Qt.WindingFill)
-        for c in self.decomposedPaths(layer): # I've forgotten what item does but it
+        for c in self.decomposedPaths(layer):
             segs = c.segments
             path.moveTo(segs[-1].points[-1].x, segs[-1].points[-1].y)
             for seg in segs:

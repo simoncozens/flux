@@ -10,16 +10,19 @@ from Flux.dividerroutine import DividerRoutine
 from io import StringIO as UnicodeIO
 from Flux.UI.GlyphActions import GlyphAction
 from Flux.UI.glyphpredicateeditor import GlyphClassPredicateTester, GlyphClassPredicate
+from babelfont.variablefont import VariableFont
+import os
 
 class FluxProject:
 
     @classmethod
     def new(klass, fontfile, editor=None):
         self = FluxProject()
-        self.fontfile = fontfile
-        self.font = Babelfont.open(self.fontfile)
         self.fontfeatures = FontFeatures()
+        self.fontfile = fontfile
         self.editor = editor
+        if not self._load_fontfile():
+            return
         self.glyphclasses = {}
         self.glyphactions = {}
         self.debuggingText = ""
@@ -35,7 +38,7 @@ class FluxProject:
                 "type": "manual",
                 "contents": contents
             }
-            self.fontfeatures.namedClasses[groupname] = tuple(contents)
+            self.fontfeatures.namedClasses.forceput(groupname, tuple(contents))
         # Load up the anchors too
         self._load_anchors()
         return self
@@ -45,9 +48,11 @@ class FluxProject:
             return
         self.filename = file
         self.xml = etree.parse(file).getroot()
-        self.fontfile = self.xml.find("source").get("file")
-        self.font = Babelfont.open(self.fontfile)
+        dirname = os.path.dirname(file)
+        self.fontfile = os.path.join(dirname,self.xml.find("source").get("file"))
         self.fontfeatures = FontFeatures()
+        if not self._load_fontfile():
+            return
         self.glyphactions = {}
         self.xmlToFontFeatures()
         text = self.xml.find("debuggingText")
@@ -78,6 +83,33 @@ class FluxProject:
         # from the font file on load, in case they have changed.
         self._load_anchors()
         self._load_glyphactions()
+
+    def _load_fontfile(self):
+        try:
+            if self.fontfile.endswith(".ufo") or self.fontfile.endswith("tf"):
+                # Single master workflow
+                self.font = Babelfont.open(self.fontfile)
+                self.variations = None
+            else:
+                self.variations = VariableFont(self.fontfile)
+                # We need a "scratch copy" because we will be trashing the
+                # glyph data with our interpolations
+                if len(self.variations.masters.keys()) == 1:
+                    self.font = list(self.variations.masters.values())[0]
+                    self.variations = None
+                else:
+                    firstmaster = self.variations.designspace.sources[0].path
+                    if firstmaster:
+                        self.font = Babelfont.open(firstmaster)
+                    else: # Glyphs, fontlab?
+                        self.font = Babelfont.open(self.fontfile)
+        except Exception as e:
+            if self.editor:
+                self.editor.showError("Couldn't open %s: %s" % (self.fontfile, e))
+            else:
+                raise e
+            return False
+        return True
 
     def _load_anchors(self):
         for g in self.font:

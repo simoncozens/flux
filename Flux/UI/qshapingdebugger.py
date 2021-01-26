@@ -10,6 +10,8 @@ from PyQt5.QtWidgets import (
     QHeaderView,
     QFormLayout,
     QVBoxLayout,
+    QHBoxLayout,
+    QSlider,
     QGroupBox,
     QCheckBox,
     QWidget,
@@ -23,6 +25,21 @@ from copy import copy, deepcopy
 import re
 
 valid_glyph_name_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-*:^|~"
+
+
+def interpolate(f, glyph,loc):
+    glyphs = [f.masters[master][glyph.name] for master in f.master_order]
+    loc = f.normalize(loc)
+
+    for pid, paths in enumerate(zip(*[g.contours for g in glyphs])):
+        for pointid,points in enumerate(zip(*[p.points for p in paths])):
+            target_point = glyph.contours[pid].points[pointid]
+            pointset = {f.master_order[i]: (points[i].x,points[i].y) for i in range(len(f.masters))}
+            (interpolated) = f.interpolate_tuples(pointset, loc, normalized=True)
+            target_point.x, target_point.y = interpolated
+    widthset = {f.master_order[i]: glyphs[i].width for i in range(len(f.masters))}
+    glyph.width = f.interpolate_tuples(widthset, loc, normalized=True)
+
 
 class QShapingDebugger(QSplitter):
     def __init__(self, editor, project):
@@ -49,10 +66,27 @@ class QShapingDebugger(QSplitter):
         self.firstboxLayout.addWidget(textbox)
         self.firstboxLayout.addWidget(self.featuregroup)
 
-        # Second box: Output and renderer
+        # Second box: Variations
         self.secondbox = QWidget()
-        self.secondboxLayout = QVBoxLayout()
+        self.secondboxLayout = QHBoxLayout()
         self.secondbox.setLayout(self.secondboxLayout)
+        self.sliders = []
+
+        if self.project.variations:
+            for axis in self.project.variations.designspace.axes:
+                self.secondboxLayout.addWidget(QLabel(axis.name))
+                slider = QSlider(0x01)
+                slider.name = axis.name
+                slider.setMinimum(axis.map_forward(axis.minimum))
+                slider.setMaximum(axis.map_forward(axis.maximum))
+                self.sliders.append(slider)
+
+                slider.valueChanged.connect(self.shapeText)
+                self.secondboxLayout.addWidget(slider)
+        # Third box: Output and renderer
+        self.thirdbox = QWidget()
+        self.thirdboxLayout = QVBoxLayout()
+        self.thirdbox.setLayout(self.thirdboxLayout)
 
         self.shaperOutput = QLabel()
         self.shaperOutput.setWordWrap(True)
@@ -61,13 +95,13 @@ class QShapingDebugger(QSplitter):
         self.shaperOutput.setSizePolicy(sp)
 
         self.qbr = QBufferRenderer(project, None)
-        sp = self.secondbox.sizePolicy()
+        sp = self.thirdbox.sizePolicy()
         sp.setHorizontalPolicy(QSizePolicy.Maximum)
         sp.setVerticalPolicy(QSizePolicy.MinimumExpanding)
-        self.secondbox.setSizePolicy(sp)
+        self.thirdbox.setSizePolicy(sp)
 
-        self.secondboxLayout.addWidget(self.shaperOutput)
-        self.secondboxLayout.addWidget(self.qbr)
+        self.thirdboxLayout.addWidget(self.shaperOutput)
+        self.thirdboxLayout.addWidget(self.qbr)
 
         # Third box: message table
         self.messageTable = QTableWidget()
@@ -85,7 +119,9 @@ class QShapingDebugger(QSplitter):
 
         self.setOrientation(Qt.Vertical)
         self.addWidget(self.firstbox)
-        self.addWidget(self.secondbox)
+        if self.project.variations:
+            self.addWidget(self.secondbox)
+        self.addWidget(self.thirdbox)
         self.addWidget(self.messageTable)
         self.fullBuffer = None
         self.lastBuffer = None
@@ -132,7 +168,6 @@ class QShapingDebugger(QSplitter):
                     glyphname += t[i]
                     i = i + 1
                 if len(glyphname) and glyphname in self.project.font:
-                    print("Adding glyph item %s" % glyphname)
                     item = BufferItem.new_glyph(glyphname, self.project.font)
                     item.codepoint = self.project.font.codepointForGlyph(glyphname)
                     buf.items.append(item)
@@ -140,7 +175,6 @@ class QShapingDebugger(QSplitter):
                     buf.items.extend([BufferItem.new_unicode(ord(x)) for x in "/"+glyphname])
             else:
                 item = BufferItem.new_unicode(ord(t[i]))
-                print("Adding buffer item %s" % item)
                 i = i + 1
                 buf.items.append(item)
         buf.guess_segment_properties()
@@ -154,6 +188,7 @@ class QShapingDebugger(QSplitter):
             features.append({"tag": k, "value": box.isChecked()})
 
         buf = self.buildBuffer()
+
         self.messageTable.setRowCount(0)
         if not self.text:
             buf.clear_mask()
@@ -174,6 +209,13 @@ class QShapingDebugger(QSplitter):
         shaper.execute(buf, features=features)
         # except Exception as e:
             # print("Shaping exception: ", e)
+
+        if self.sliders:
+            for g in set([g.glyph for g in buf.items]):
+                interpolate(self.project.variations, self.project.font[g],{ slider.name: slider.value() for slider in self.sliders})
+            for item in buf.items:
+                item.prep_glyph(self.project.font)
+
         self.qbr.set_buf(buf)
         self.fullBuffer = buf
         self.shaperOutput.setText(buf.serialize())
@@ -227,7 +269,7 @@ class QShapingDebugger(QSplitter):
             buf, msg = self.partialBuffers[row]
             self.qbr.set_buf(buf)
             m = re.match(r"After (\w+) \((\w+)\)", msg)
-            if m:
+            if m and self.editor:
                 routine, feature = m[1], m[2]
                 self.editor.fontfeaturespanel.lookuplist.highlight(routine)
                 self.editor.fontfeaturespanel.featurelist.highlight(feature, routine)

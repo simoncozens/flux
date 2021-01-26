@@ -34,10 +34,10 @@ class FluxEditor(QSplitter):
 
         self.mainMenu = QMenuBar(self)
         self.project = proj
-        self.project.editor = self
-        self.loadPlugins()
         if not proj:
             self.openFluxOrFont() # Exits if there still isn't one
+        self.project.editor = self
+        self.loadPlugins()
         self.setWindowTitle("Flux - %s" % (self.project.filename or self.project.fontfile))
         self.setupFileMenu()
         self.setupEditMenu()
@@ -152,7 +152,7 @@ class FluxEditor(QSplitter):
             pass
         # Open the glyphs file
         glyphs = QFileDialog.getOpenFileName(
-            self, "Open font file", filter="Font file (*.glyphs *.ufo *.otf *.ttf)"
+            self, "Open font file", filter="Font file (*.glyphs *.ufo *.otf *.ttf *.designspace)"
         )
         if not glyphs:
             return
@@ -170,7 +170,7 @@ class FluxEditor(QSplitter):
         msg.exec_()
 
         filename = QFileDialog.getOpenFileName(
-            self, "Open Flux file", filter="Flux or font file (*.glyphs *.ufo *.otf *.ttf *.fluxml)"
+            self, "Open Flux file", filter="Flux or font file (*.glyphs *.ufo *.otf *.ttf *.designspace *.fluxml)"
         )
         if not filename or not filename[0]:
             if not self.project:
@@ -274,4 +274,14 @@ class FluxEditor(QSplitter):
             event.accept()
         else:
             event.ignore()
+
+    def showError(self, message):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Critical)
+
+        msg.setText("Something went wrong")
+        msg.setInformativeText(message)
+        msg.setWindowTitle("Flux")
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec_()
 
