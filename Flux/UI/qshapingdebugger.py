@@ -23,23 +23,49 @@ from fontFeatures.shaperLib.Shaper import Shaper
 from fontFeatures.shaperLib.BaseShaper import BaseShaper
 from copy import copy, deepcopy
 import re
+import weakref
+
 
 valid_glyph_name_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-*:^|~"
 
 
-def interpolate(f, glyph,loc):
-    glyphs = [f.masters[master][glyph.name] for master in f.master_order]
-    loc = f.normalize(loc)
+class VariationAwareBuffer(Buffer):
+    def guess_segment_properties(self):
+        for i in self.items:
+            i.buffer = weakref.ref(self)
+        super().guess_segment_properties()
 
-    for pid, paths in enumerate(zip(*[g.contours for g in glyphs])):
-        for pointid,points in enumerate(zip(*[p.points for p in paths])):
-            target_point = glyph.contours[pid].points[pointid]
-            pointset = {f.master_order[i]: (points[i].x,points[i].y) for i in range(len(f.masters))}
-            (interpolated) = f.interpolate_tuples(pointset, loc, normalized=True)
-            target_point.x, target_point.y = interpolated
-    widthset = {f.master_order[i]: glyphs[i].width for i in range(len(f.masters))}
-    glyph.width = f.interpolate_tuples(widthset, loc, normalized=True)
+    def store_unicode(self, unistring):
+        self.items = [VariationAwareBufferItem.new_unicode(ord(char)) for char in unistring ]
+        for i in self.items:
+            i.buffer = weakref.ref(self)
 
+class VariationAwareBufferItem(BufferItem):
+    @classmethod
+    def new_unicode(klass, codepoint):
+        self = klass()
+        self.codepoint = codepoint
+        self.glyph = None
+        self.feature_masks = {}
+        return self
+
+    @classmethod
+    def new_glyph(klass, glyph, font):
+        self = klass()
+        self.codepoint = None
+        self.glyph = glyph
+        self.feature_masks = {}
+        self.prep_glyph(font)
+        return self
+
+    def prep_glyph(self, font):
+        super().prep_glyph(font)
+        # # Interpolate width
+        vf = self.buffer().vf
+        if vf:
+            glyphs = [vf.masters[master][self.glyph] for master in vf.master_order]
+            widthset = {vf.master_order[i]: glyphs[i].width for i in range(len(vf.masters))}
+            self.position.xAdvance = vf.interpolate_tuples(widthset, self.buffer().location)
 
 class QShapingDebugger(QSplitter):
     def __init__(self, editor, project):
@@ -157,7 +183,7 @@ class QShapingDebugger(QSplitter):
         self.shapeText()
 
     def buildBuffer(self):
-        buf = Buffer(self.project.font)
+        buf = VariationAwareBuffer(self.project.font)
         t = self.text
         i = 0
         while i < len(t):
@@ -168,13 +194,13 @@ class QShapingDebugger(QSplitter):
                     glyphname += t[i]
                     i = i + 1
                 if len(glyphname) and glyphname in self.project.font:
-                    item = BufferItem.new_glyph(glyphname, self.project.font)
+                    item = VariationAwareBufferItem.new_glyph(glyphname, self.project.font)
                     item.codepoint = self.project.font.codepointForGlyph(glyphname)
                     buf.items.append(item)
                 else:
-                    buf.items.extend([BufferItem.new_unicode(ord(x)) for x in "/"+glyphname])
+                    buf.items.extend([VariationAwareBufferItem.new_unicode(ord(x)) for x in "/"+glyphname])
             else:
-                item = BufferItem.new_unicode(ord(t[i]))
+                item = VariationAwareBufferItem.new_unicode(ord(t[i]))
                 i = i + 1
                 buf.items.append(item)
         buf.guess_segment_properties()
@@ -215,25 +241,9 @@ class QShapingDebugger(QSplitter):
     def prep_shaper(self, shaper, buf, features):
         if not self.sliders:
             return
-        # We have to do half of shaper.execute here because we will fiddle the
-        # widths before positioning, and preprocess may actually change the glyphs
-        complexshaper = shaper.categorize(buf)(shaper, shaper.babelfont, buf, features)
-        shaper.complexshaper = complexshaper
-        complexshaper.preprocess_text()
-        complexshaper.normalize_unicode_buffer()
-        buf.map_to_glyphs()
-        # Interpolated widths
-        width_map = {}
-        loc = { slider.name: slider.value() for slider in self.sliders}
-        vf = self.project.variations
-        for g in set([g.glyph for g in buf.items]):
-            glyphs = [vf.masters[master][g] for master in vf.master_order]
-            widthset = {vf.master_order[i]: glyphs[i].width for i in range(len(vf.masters))}
-            width_map[g] = vf.interpolate_tuples(widthset, loc)
-        for item in buf.items:
-            item.position.xAdvance=width_map[item.glyph]
-        # Now buffer .is_all_glyphs so we don't need to go through that again
-        # when we call execute for real
+        buf.vf = self.project.variations
+        loc = { slider.name: slider.value() for slider in self.sliders }
+        buf.location = loc
 
         self.qbr.set_location(loc)
 
