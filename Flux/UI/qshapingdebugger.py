@@ -205,20 +205,38 @@ class QShapingDebugger(QSplitter):
             self.project.font,
             message_function=self.addToTable,
         )
-        # try:
+        self.prep_shaper(shaper, buf, features)
         shaper.execute(buf, features=features)
-        # except Exception as e:
-            # print("Shaping exception: ", e)
-
-        if self.sliders:
-            for g in set([g.glyph for g in buf.items]):
-                interpolate(self.project.variations, self.project.font[g],{ slider.name: slider.value() for slider in self.sliders})
-            for item in buf.items:
-                item.prep_glyph(self.project.font)
 
         self.qbr.set_buf(buf)
         self.fullBuffer = buf
         self.shaperOutput.setText(buf.serialize())
+
+    def prep_shaper(self, shaper, buf, features):
+        if not self.sliders:
+            return
+        # We have to do half of shaper.execute here because we will fiddle the
+        # widths before positioning, and preprocess may actually change the glyphs
+        complexshaper = shaper.categorize(buf)(shaper, shaper.babelfont, buf, features)
+        shaper.complexshaper = complexshaper
+        complexshaper.preprocess_text()
+        complexshaper.normalize_unicode_buffer()
+        buf.map_to_glyphs()
+        # Interpolated widths
+        width_map = {}
+        loc = { slider.name: slider.value() for slider in self.sliders}
+        vf = self.project.variations
+        for g in set([g.glyph for g in buf.items]):
+            glyphs = [vf.masters[master][g] for master in vf.master_order]
+            widthset = {vf.master_order[i]: glyphs[i].width for i in range(len(vf.masters))}
+            width_map[g] = vf.interpolate_tuples(widthset, loc)
+        for item in buf.items:
+            item.position.xAdvance=width_map[item.glyph]
+        # Now buffer .is_all_glyphs so we don't need to go through that again
+        # when we call execute for real
+
+        self.qbr.set_location(loc)
+
 
     def addToTable(self, msg, buffer=None, serialize_options=None):
         if msg.startswith("Before"):
