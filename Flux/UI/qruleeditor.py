@@ -19,7 +19,6 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot, QStringListModel, QSize
 from fontFeatures.shaperLib.Shaper import Shaper
-from fontFeatures.shaperLib.Buffer import Buffer
 from .qbufferrenderer import QBufferRenderer
 from .qglyphname import QGlyphName
 from fontFeatures import (
@@ -33,6 +32,9 @@ from fontFeatures import (
 )
 import sys
 import darkdetect
+from Flux.variations import VariationAwareBuffer, VariationAwareBufferItem
+from fontFeatures.shaperLib.Buffer import Buffer, BufferItem
+
 
 if darkdetect.isDark():
     precontext_style = "background-color: #322b2b"
@@ -47,31 +49,50 @@ class QValueRecordEditor(QWidget):
     fieldnames = ["xPlacement", "yPlacement", "xAdvance", "yAdvance"]
     labelnames = ["Δx", "Δy", "+x", "+y"]
 
-    def __init__(self, vr):
+    def __init__(self, vr, vf=None, master=None):
         self.valuerecord = vr
         self.boxlayout = QHBoxLayout()
         self.boxes = []
+        self.master = master
+        self.vf = vf
         super(QWidget, self).__init__()
+        self.add_boxes()
+        self.prep_fields()
+
+    def add_boxes(self):
         for ix, k in enumerate(self.fieldnames):
             t = QSpinBox()
             t.setSingleStep(10)
             t.setRange(-10000, 10000)
-            t.setValue(getattr(self.valuerecord, k) or 0)
             t.valueChanged.connect(self.serialize)
+            self.boxes.append(t)
+            self.boxlayout.addWidget(t)
+
+    def prep_fields(self):
+        vr = self.valuerecord
+        if self.master:
+            vr = self.valuerecord.get_value_for_master(self.vf, self.master)
+        for ix, k in enumerate(self.fieldnames):
+            t = self.boxes[ix]
+            t.setValue(getattr(vr, k) or 0)
             # label = QLabel(t)
             # label.setText(self.labelnames[ix])
             # label.move(label.x()+0,label.y()-50)
-            self.boxes.append(t)
-            self.boxlayout.addWidget(t)
         self.setLayout(self.boxlayout)
 
+    def change_master(self, master):
+        self.serialize()
+        self.master = master
+        self.prep_fields()
+
     def serialize(self):
-        for ix, k in enumerate(self.fieldnames):
-            try:
-                val = int(self.boxes[ix].text())
-                setattr(self.valuerecord, k, int(self.boxes[ix].value()))
-            except Exception as e:
-                print(e)
+        value = {self.fieldnames[ix]: int(self.boxes[ix].value()) for ix in range(len(self.boxes))}
+
+        if self.master:
+            self.valuerecord.set_value_for_master(self.vf, self.master, ValueRecord(**value))
+        else:
+            for attr, val in value.items():
+                setattr(self.valuerecord, attr, val)
         self.changed.emit()
 
 
@@ -85,6 +106,7 @@ class QRuleEditor(QDialog):
         self.outputslots = []
         self.buffer_direction = "RTL"
         self.buffer_script = "Latin"
+        self.all_valuerecord_editors = []
         self.index = None
         if rule:
             self.backup_rule = Rule.fromXML(rule.toXML())  # Deep copy
@@ -98,8 +120,8 @@ class QRuleEditor(QDialog):
         scroll = QScrollArea()
         scroll.setLayout(self.slotview)
 
-        self.outputview_before = QBufferRenderer(project)
-        self.outputview_after = QBufferRenderer(project)
+        self.outputview_before = QBufferRenderer(project, VariationAwareBuffer(self.project.font))
+        self.outputview_after = QBufferRenderer(project, VariationAwareBuffer(self.project.font))
         self.before_after = QWidget()
         self.before_after_layout_v = QVBoxLayout()
 
@@ -115,6 +137,15 @@ class QRuleEditor(QDialog):
         self.before_after_layout_h.addWidget(self.outputview_before)
         self.before_after_layout_h.addWidget(self.outputview_after)
         layoutarea.setLayout(self.before_after_layout_h)
+
+        if self.project.variations:
+            self.master_selection = QComboBox()
+            for mastername in self.project.variations.masters:
+                self.master_selection.addItem(mastername)
+            self.master_selection.currentTextChanged.connect(self.masterChanged)
+            self.before_after_layout_v.addWidget(self.master_selection)
+        else:
+            self.master_selection = None
 
         self.before_after_layout_v.addWidget(featureButtons)
         self.before_after_layout_v.addWidget(self.asFea)
@@ -140,6 +171,17 @@ class QRuleEditor(QDialog):
         v_box_1.addWidget(buttons)
         self.setRule(rule)
 
+    @property
+    def currentMaster(self):
+        if not self.master_selection:
+            return None
+        return self.master_selection.currentText()
+
+    def masterChanged(self):
+        for qvre in self.all_valuerecord_editors:
+            qvre.change_master(self.currentMaster)
+        self.resetBuffer()
+
     def keyPressEvent(self, evt):
         return
 
@@ -161,6 +203,11 @@ class QRuleEditor(QDialog):
         self.representative_string = self.makeRepresentativeString()
         self.resetBuffer()
 
+    @property
+    def location(self):
+        sourceIndex = list(self.project.variations.masters.keys()).index(self.currentMaster)
+        return self.project.variations.designspace.sources[sourceIndex].location
+
     def resetBuffer(self):
         if self.rule:
             try:
@@ -169,6 +216,9 @@ class QRuleEditor(QDialog):
                 print("Can't serialize", e)
         self.outputview_before.set_buf(self.makeBuffer("before"))
         self.outputview_after.set_buf(self.makeBuffer("after"))
+        if self.currentMaster:
+            self.outputview_before.set_location(self.location)
+            self.outputview_after.set_location(self.location)
 
     @pyqtSlot()
     def changeRepresentativeString(self):
@@ -408,9 +458,12 @@ class QRuleEditor(QDialog):
         else:
             for ix, i in enumerate(self.rule.shaper_inputs()):
                 if isinstance(self.rule, Positioning):
-                    widget = QValueRecordEditor(self.rule.valuerecords[ix])
+                    widget = QValueRecordEditor(self.rule.valuerecords[ix],
+                        vf=self.project.variations,
+                        master=self.currentMaster)
                     widget.changed.connect(self.resetBuffer)
                     editingWidgets.append(widget)
+                    self.all_valuerecord_editors.append(widget)
                 elif isinstance(self.rule, Chaining):
                     lookup = self.rule.lookups[ix] and self.rule.lookups[ix][0].name
                     w = QWidget()
@@ -436,6 +489,7 @@ class QRuleEditor(QDialog):
                     self.clearLayout(item.layout())
 
     def arrangeSlots(self):
+        self.all_valuerecord_editors = []
         self.clearLayout(self.slotview)
         if not self.rule:
             return
@@ -537,25 +591,28 @@ class QRuleEditor(QDialog):
         return features
 
     def makeBuffer(self, before_after="before"):
-        buf = Buffer(
+        buf = VariationAwareBuffer(
             self.project.font,
-            glyphs=self.representative_string,
             direction=self.buffer_direction,
         )
-        print("representative_string: ", self.representative_string)
+        if self.project.variations:
+            buf.location = self.location
+            buf.vf = self.project.variations
+        buf.items = [VariationAwareBufferItem.new_glyph(g, self.project.font, buf) for g in self.representative_string]
         shaper = Shaper(self.project.fontfeatures, self.project.font)
 
         shaper.execute(buf, features=self.makeShaperFeatureArray())
         routine = Routine(rules=[self.rule])
-        print("Before: ", buf.serialize())
+        # print("Before shaping: ", buf.serialize())
         if before_after == "after" and self.rule:
+            print("Before application: ", buf.serialize())
             print(self.rule.asFea())
             buf.clear_mask()  # XXX
             try:
                 routine.apply_to_buffer(buf)
             except Exception as e:
                 print("Couldn't shape: " + str(e))
-            print("After: ", buf.serialize())
+            print("After application: ", buf.serialize())
         return buf
 
 

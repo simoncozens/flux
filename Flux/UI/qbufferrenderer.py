@@ -25,7 +25,7 @@ class QBufferRenderer(QGraphicsView):
     def set_scene_from_buf(self):
         self.scene.clear()
         xcursor = 0
-        if self.buf and len(self.buf) > 0:
+        if self.buf is not None and len(self.buf.items) > 0:
             items = self.buf.items
             if self.buf.direction == "RTL":
                 items = list(reversed(items))
@@ -84,6 +84,7 @@ class QBufferRenderer(QGraphicsView):
 
     def set_location(self, location):
         self.location = self.project.variations.normalize(location)
+        self.set_scene_from_buf()
 
     def interpolate(self, glyphname):
         vf = self.project.variations
